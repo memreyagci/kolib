@@ -22,11 +22,3 @@ struct ManifestFile {
     id: Uuidv7,
     createdAt: IsoDateTime,
 }
-
-pub fn open(folder_path: &str) {
-    todo!()
-}
-
-fn create_database() {
-    todo!()
-}
