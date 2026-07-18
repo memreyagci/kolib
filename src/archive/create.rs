@@ -1,10 +1,14 @@
-use super::{ManifestFile, koli_folder_files};
+use super::ManifestFile;
 use crate::error::ArchiveError;
 
 use chrono::Utc;
 use sqlx::{Sqlite, SqlitePool, migrate::MigrateDatabase};
 use std::fs;
 use uuid::Uuid;
+
+const MANIFEST_FILE_NAME: &str = "koli.json";
+const DATABASE_FILE_NAME: &str = "koli.db";
+const MANIFEST_FORMAT_VER: u8 = 1;
 
 /// Creates a new Koli folder, which has:
 /// - koli.json (likely to be deprecated with a db table later on)
@@ -36,7 +40,7 @@ fn is_dir_empty(folder_path: &str) -> Result<bool, ArchiveError> {
 fn create_manifest_file(folder_path: &str) -> Result<(), ArchiveError> {
     let manifest_content = ManifestFile {
         r#type: String::from("koli"),
-        formatVersion: 1,
+        formatVersion: MANIFEST_FORMAT_VER,
         id: Uuid::now_v7(),
         createdAt: Utc::now(),
     };
@@ -44,11 +48,7 @@ fn create_manifest_file(folder_path: &str) -> Result<(), ArchiveError> {
     match serde_json::to_string(&manifest_content) {
         Err(e) => Err(ArchiveError::SerdeError(e)),
         Ok(x) => {
-            fs::write(
-                format!("{folder_path}{}", koli_folder_files().manifest_file_name),
-                &x,
-            )
-            .unwrap();
+            fs::write(format!("{folder_path}{}", MANIFEST_FILE_NAME), &x).unwrap();
             Ok(())
         }
     }
@@ -56,7 +56,7 @@ fn create_manifest_file(folder_path: &str) -> Result<(), ArchiveError> {
 
 // TODO: Add migration table, and move the sql file in a proper dir
 async fn init_db(folder_path: &str) -> Result<(), ArchiveError> {
-    let db_url = format!("sqlite://{folder_path}koli.db");
+    let db_url = format!("sqlite://{folder_path}{DATABASE_FILE_NAME}");
 
     if !Sqlite::database_exists(&db_url).await.unwrap_or(false) {
         match Sqlite::create_database(&db_url).await {
