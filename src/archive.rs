@@ -6,24 +6,11 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::{fs, io};
 use thiserror::Error;
 use uuid::Uuid;
 
 type Uuidv7 = Uuid;
 type IsoDateTime = DateTime<Utc>;
-
-#[derive(Error, Debug)]
-pub enum ArchiveError {
-    #[error("I/O error occurred")]
-    IoError(#[from] io::Error),
-
-    #[error("Directory is not empty")]
-    DirNotEmpty,
-
-    #[error("serde_json related error occurred")]
-    SerdeError(#[from] serde_json::Error),
-}
 
 // TODO: Consider having these in an env file.
 struct KoliFolderFiles {
