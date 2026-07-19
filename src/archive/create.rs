@@ -14,7 +14,7 @@ const MANIFEST_FORMAT_VER: u8 = 1;
 /// - koli.json (likely to be deprecated with a db table later on)
 /// - koli.db
 pub async fn create(folder_path: &str) -> Result<(), ArchiveError> {
-    if !is_dir_empty(&folder_path)? == false {
+    if !is_dir_empty(&folder_path)? {
         Err(ArchiveError::DirNotEmpty)
     } else {
         create_manifest_file(&folder_path)?;
