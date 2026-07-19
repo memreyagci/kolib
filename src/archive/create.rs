@@ -1,14 +1,13 @@
 use super::ManifestFile;
-use crate::error::ArchiveError;
+use crate::{
+    consts::{DATABASE_FILE_NAME, MANIFEST_FILE_NAME, MANIFEST_FORMAT_VER},
+    error::ArchiveError,
+};
 
 use chrono::Utc;
 use sqlx::{Sqlite, SqlitePool, migrate::MigrateDatabase};
 use std::fs;
 use uuid::Uuid;
-
-const MANIFEST_FILE_NAME: &str = "koli.json";
-const DATABASE_FILE_NAME: &str = "koli.db";
-const MANIFEST_FORMAT_VER: u8 = 1;
 
 /// Creates a new Koli folder, which has:
 /// - koli.json (likely to be deprecated with a db table later on)
@@ -79,6 +78,7 @@ async fn init_db(folder_path: &str) -> Result<(), ArchiveError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::consts::DATABASE_FILE_NAME;
 
     // TODO: add negative tests
 
@@ -104,8 +104,8 @@ mod tests {
         };
 
         let files_to_check = vec![
-            String::from(format!("{empty_dir_path}koli.db")),
-            String::from(format!("{empty_dir_path}koli.json")),
+            String::from(format!("{empty_dir_path}{DATABASE_FILE_NAME}")),
+            String::from(format!("{empty_dir_path}{MANIFEST_FILE_NAME}")),
         ];
 
         assert!(result.is_ok(), "Failed because of {result:?}");
