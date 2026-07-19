@@ -75,3 +75,47 @@ async fn init_db(folder_path: &str) -> Result<(), ArchiveError> {
         Err(ArchiveError::KoliDbAlreadyExists)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // TODO: add negative tests
+
+    // To be able to test archive folder creations in an empty dir
+    fn create_an_empty_folder() -> String {
+        let tmp_dir = std::env::temp_dir().display().to_string();
+        let folder_name = Uuid::now_v7().to_string();
+        let empty_dir_path = format!("{tmp_dir}{folder_name}/");
+
+        fs::create_dir(&empty_dir_path).unwrap();
+
+        empty_dir_path
+    }
+
+    #[tokio::test]
+    async fn archive_creation_in_empty_dir_works() {
+        let empty_dir_path = create_an_empty_folder();
+        println!("{empty_dir_path}");
+
+        let result = match create(&empty_dir_path).await {
+            Ok(x) => Ok(x),
+            Err(e) => Err(e),
+        };
+
+        let files_to_check = vec![
+            String::from(format!("{empty_dir_path}koli.db")),
+            String::from(format!("{empty_dir_path}koli.json")),
+        ];
+
+        assert!(result.is_ok(), "Failed because of {result:?}");
+
+        for file in files_to_check {
+            assert!(
+                fs::exists(file.to_string()).unwrap(),
+                "File {} does not exist in path",
+                file.to_string(),
+            );
+        }
+    }
+}
