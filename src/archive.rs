@@ -7,12 +7,9 @@
 pub mod create;
 pub use create::*;
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
-type Uuidv7 = Uuid;
-type IsoDateTime = DateTime<Utc>;
+use crate::types::{IsoDateTime, Uuidv7};
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize)]
