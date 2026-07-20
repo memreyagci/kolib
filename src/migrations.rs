@@ -33,6 +33,9 @@ pub async fn check_db_ver(folder_path: &str) -> Result<u8, ArchiveError> {
                     .bind(MIGRATION_TABLE_NAME)
                     .fetch_one(&db)
                     .await?;
+
+            db.close().await;
+
             if result_migration_table.is_empty() {
                 Err(ArchiveError::InvalidArchive {
                     reason: Some(String::from("Migration table could not be found")),
