@@ -18,4 +18,16 @@ pub enum ArchiveError {
 
     #[error("Database already exists")]
     KoliDbAlreadyExists,
+
+    #[error("koli.db is not found")]
+    InvalidArchive { reason: Option<String> },
+}
+
+#[derive(Error, Debug)]
+pub enum ExportReaderError {
+    #[error("Invalid or unsupport file for {platform}: {file_name}")]
+    InvalidOrUnsupportedFileName { platform: String, file_name: String },
+
+    #[error("file_content must be set.")]
+    FileContentNotFound,
 }
