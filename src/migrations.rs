@@ -55,7 +55,8 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test() {
+    async fn check_db_ver_returns_correct_ver() {
+        // TODO: Replace with mock user dirs
         let version = check_db_ver("/Users/emre/Documents/repos/kolib/")
             .await
             .unwrap();
