@@ -61,7 +61,7 @@ async fn init_db(folder_path: &str) -> Result<(), ArchiveError> {
         match Sqlite::create_database(&db_url).await {
             Ok(x) => {
                 let db = SqlitePool::connect(&db_url).await.unwrap();
-                let contents = include_str!("../0000_gray_the_phantom.sql");
+                let contents = include_str!("../migrations/0000_gray_the_phantom.sql");
 
                 sqlx::raw_sql(contents).execute(&db).await?;
                 db.close().await;
