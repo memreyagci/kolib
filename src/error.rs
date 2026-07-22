@@ -28,6 +28,6 @@ pub enum ExportReaderError {
     #[error("Invalid or unsupport file for {platform}: {file_name}")]
     InvalidOrUnsupportedFileName { platform: String, file_name: String },
 
-    #[error("file_content must be set.")]
-    FileContentNotFound,
+    #[error("file must be set.")]
+    FileNotFound,
 }
