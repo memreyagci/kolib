@@ -12,7 +12,7 @@ use std::str::FromStr;
 use sqlx::Row;
 use uuid::Uuid;
 
-use crate::types::Platform;
+use crate::{error::AccountError, types::Platform};
 
 /// An account consist of three parts: id, name, and paltform. They are mandatory fields in its relative table in
 /// the database, but not here necessarily, since the implementation has functions that does not require all of
@@ -43,14 +43,33 @@ impl Account {
         }
     }
 
-    pub fn name(mut self, name: String) -> Self {
+    // Setters
+    pub fn set_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
-
-    pub fn platform(mut self, platform: Platform) -> Self {
+    pub fn set_platform(mut self, platform: Platform) -> Self {
         self.platform = Some(platform);
         self
+    }
+
+    // Getters
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+    pub fn name(&self) -> Result<&String, AccountError> {
+        if let Some(n) = &self.name {
+            Ok(n)
+        } else {
+            Err(AccountError::AccountNameNull)
+        }
+    }
+    pub fn platform(&self) -> Result<&Platform, String> {
+        if let Some(p) = &self.platform {
+            Ok(p)
+        } else {
+            Err("Platform is not set".to_string())
+        }
     }
 
     /// To save an account to the database, all you need to do is to run this function on an instance and
