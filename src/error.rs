@@ -30,4 +30,13 @@ pub enum ExportReaderError {
 
     #[error("file must be set.")]
     FileNotFound,
+
+    #[error("Account and importer platform doesn't match.")]
+    PlatformMismatch,
+}
+
+#[derive(Error, Debug)]
+pub enum AccountError {
+    #[error("Account name is not set.")]
+    AccountNameNull,
 }
