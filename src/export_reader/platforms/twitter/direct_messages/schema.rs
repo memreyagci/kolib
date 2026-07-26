@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub type DirectMessages = Vec<DirectMessagesElement>;
+pub type DirectMessagesSchema = Vec<DirectMessagesElement>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,10 +44,7 @@ pub struct MessageCreate {
 
     pub id: String,
 
-    // Because in the file, it appears as a string, but actually is a unix timestamp, and db field is
-    // an integer.
-    #[serde_as(as = "DisplayFromStr")]
-    pub created_at: i64,
+    pub created_at: String,
 
     pub edit_history: Option<Vec<EditHistory>>,
 
@@ -63,8 +60,7 @@ pub struct MessageCreate {
 pub struct EditHistory {
     pub edited_text: String,
 
-    #[serde_as(as = "DisplayFromStr")]
-    pub created_at_sec: i64,
+    pub created_at_sec: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,8 +73,7 @@ pub struct Reaction {
 
     pub event_id: String,
 
-    #[serde_as(as = "DisplayFromStr")]
-    pub created_at: i64,
+    pub created_at: String,
 }
 
 // TODO: Consider finding a way to convert keywords to emojis without needing to run to_string() function
