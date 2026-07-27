@@ -18,9 +18,9 @@ impl AccountModel {
     /// use kolib::types::Platform;
     /// let account = Account::new().name("@my_old_acc".to_string()).platform(Platform::Twitter);
     /// ```
-    pub fn new(name: String, platform: Platform) -> Self {
+    pub(crate) fn new(id: Uuid, name: String, platform: Platform) -> Self {
         AccountModel {
-            id: Uuid::now_v7(),
+            id: id,
             name: name,
             platform: platform,
         }
