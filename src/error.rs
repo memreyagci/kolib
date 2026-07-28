@@ -39,4 +39,7 @@ pub enum ExportReaderError {
 pub enum AccountError {
     #[error("Account name is not set.")]
     AccountNameNull,
+
+    #[error("sqlx error occured.")]
+    SqlxError(#[from] sqlx::Error),
 }
