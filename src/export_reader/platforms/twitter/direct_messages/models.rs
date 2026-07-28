@@ -23,7 +23,7 @@ pub struct TwitterDirectMessagesModel {
 }
 
 impl TwitterDirectMessagesModel {
-    pub fn new(account_id: Uuid, content_raw: String) -> Vec<Self> {
+    pub(crate) fn new(account_id: Uuid, content_raw: String) -> Vec<Self> {
         let content_json: DirectMessagesSchema =
             serde_json::from_str::<DirectMessagesSchema>(&Self::js_to_json(content_raw)).unwrap();
 
@@ -64,9 +64,11 @@ impl TwitterDirectMessagesModel {
 mod test {
     use std::fs;
 
+    use uuid::Uuid;
+
     use crate::{
         export_reader::{
-            account::models::AccountModel,
+            account::models::Account,
             platforms::twitter::direct_messages::models::TwitterDirectMessagesModel,
         },
         types::Platform,
