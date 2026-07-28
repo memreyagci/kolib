@@ -1,6 +1,4 @@
-use super::ManifestFile;
 use crate::{
-    consts::{DATABASE_FILE_NAME, MANIFEST_FILE_NAME, MANIFEST_FORMAT_VER},
     error::ArchiveError,
 };
 
@@ -16,7 +14,6 @@ pub async fn create(folder_path: &str) -> Result<(), ArchiveError> {
     if !is_dir_empty(&folder_path)? {
         Err(ArchiveError::DirNotEmpty)
     } else {
-        create_manifest_file(&folder_path)?;
         init_db(&folder_path).await?;
         //TODO: 3. Done. Consider returning the path or something
         Ok(())
@@ -36,20 +33,6 @@ fn is_dir_empty(folder_path: &str) -> Result<bool, ArchiveError> {
     }
 }
 
-fn create_manifest_file(folder_path: &str) -> Result<(), ArchiveError> {
-    let manifest_content = ManifestFile {
-        r#type: String::from("koli"),
-        formatVersion: MANIFEST_FORMAT_VER,
-        id: Uuid::now_v7(),
-        createdAt: Utc::now(),
-    };
-
-    match serde_json::to_string(&manifest_content) {
-        Err(e) => Err(ArchiveError::SerdeError(e)),
-        Ok(x) => {
-            fs::write(format!("{folder_path}{}", MANIFEST_FILE_NAME), &x).unwrap();
-            Ok(())
-        }
     }
 }
 
@@ -103,19 +86,14 @@ mod tests {
             Err(e) => Err(e),
         };
 
-        let files_to_check = vec![
-            String::from(format!("{empty_dir_path}{DATABASE_FILE_NAME}")),
-            String::from(format!("{empty_dir_path}{MANIFEST_FILE_NAME}")),
-        ];
+        let db_path = empty_dir_path.join(DATABASE_FILE_NAME);
 
         assert!(result.is_ok(), "Failed because of {result:?}");
 
-        for file in files_to_check {
-            assert!(
-                fs::exists(file.to_string()).unwrap(),
-                "File {} does not exist in path",
-                file.to_string(),
-            );
-        }
+        assert!(
+            fs::exists(&db_path).is_ok(),
+            "File {:?} does not exist in path",
+            db_path,
+        );
     }
 }
