@@ -1,15 +1,21 @@
-use std::fs;
+use std::{fs, path::Path};
 
-use crate::{consts::DATABASE_FILE_NAME, error::ArchiveError, migrations::check_db_ver};
+use crate::{
+    archive::{model::Archive, utils::get_pool_by_archive_path},
+    consts::DATABASE_FILE_NAME,
+    error::ArchiveError,
+};
 
-pub async fn open(folder_path: &str) -> Result<(), ArchiveError> {
-    let files: Vec<String> = get_dir_content(&folder_path)?;
+pub async fn open(folder_path: impl AsRef<Path>) -> Result<Archive, Box<dyn std::error::Error>> {
+    let folder = folder_path.as_ref().to_path_buf();
+    let files = get_dir_content(folder_path.as_ref().to_str().unwrap()).unwrap();
 
     if !files.contains(&DATABASE_FILE_NAME.to_string()) {
-        Err(ArchiveError::InvalidArchive { reason: (None) })
+        Err(Box::new(ArchiveError::InvalidArchive { reason: (None) }))
     } else {
-        let _curr_db_ver = check_db_ver(&folder_path).await.unwrap();
-        Ok(())
+        // TODO: Check db ver and run migrations
+        let pool = get_pool_by_archive_path(&folder).await.unwrap();
+        Ok(Archive::new(pool, folder))
     }
 }
 
