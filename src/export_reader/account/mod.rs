@@ -7,7 +7,6 @@
 //!
 //! An account is a requirement when an export/takeout file from a platform is to be imported.
 
-pub(crate) mod models;
-mod repo;
+pub mod models;
+pub mod repo;
 
-pub use repo::AccountRepository as Account;
