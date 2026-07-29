@@ -8,45 +8,45 @@ const TWITTER_DM_MEDIA_MARKER_PREFIX: &str = "https://twitter.com/messages/media
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMModel {
-    id: String,
-    account_id: String,
-    other_user_id: String,
-    conversation_id: String,
-    message_create_id: String,
-    sender_id: String,
-    recipient_id: String,
-    text: String,
-    created_at: i64,
+    pub(crate) id: String,
+    pub(crate) account_id: String,
+    pub(crate) other_user_id: String,
+    pub(crate) conversation_id: String,
+    pub(crate) message_create_id: String,
+    pub(crate) sender_id: String,
+    pub(crate) recipient_id: String,
+    pub(crate) text: String,
+    pub(crate) created_at: i64,
 }
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMReactionsModel {
-    sender_id: String,
-    reaction_key: String,
-    event_id: String,
-    created_at: i64,
+    pub(crate) sender_id: String,
+    pub(crate) reaction_key: String,
+    pub(crate) event_id: String,
+    pub(crate) created_at: i64,
 }
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMEditHistoryModel {
-    edited_text: String,
-    created_at_sec: String,
+    pub(crate) edited_text: String,
+    pub(crate) created_at_sec: String,
 }
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMAttachmentsModel {
-    id: String,
-    message_id: String,
-    external: u8,
-    target: String,
+    pub(crate) id: String,
+    pub(crate) message_id: String,
+    pub(crate) external: u8,
+    pub(crate) target: String,
 }
 
 #[derive(Debug)]
 pub struct TwitterDMRows {
-    main: Vec<TwitterDMModel>,
-    reactions: Vec<TwitterDMReactionsModel>,
-    edit_history: Vec<TwitterDMEditHistoryModel>,
-    attachments: Vec<TwitterDMAttachmentsModel>,
+    pub(crate) main: Vec<TwitterDMModel>,
+    pub(crate) reactions: Vec<TwitterDMReactionsModel>,
+    pub(crate) edit_history: Vec<TwitterDMEditHistoryModel>,
+    pub(crate) attachments: Vec<TwitterDMAttachmentsModel>,
 }
 
 pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
