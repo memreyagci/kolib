@@ -7,7 +7,7 @@ use crate::export_reader::platforms::twitter::direct_messages::schema::DirectMes
 const TWITTER_DM_MEDIA_MARKER_PREFIX: &str = "https://twitter.com/messages/media/";
 
 #[derive(sqlx::FromRow, Debug)]
-pub struct TwitterDirectMessagesModel {
+pub struct TwitterDMModel {
     pub id: String,
     pub account_id: String,
     pub other_user_id: String,
@@ -20,7 +20,7 @@ pub struct TwitterDirectMessagesModel {
 }
 
 #[derive(sqlx::FromRow, Debug)]
-pub struct TwitterDirectMessagesReactionsModel {
+pub struct TwitterDMReactionsModel {
     pub sender_id: String,
     pub reaction_key: String,
     pub event_id: String,
@@ -28,13 +28,13 @@ pub struct TwitterDirectMessagesReactionsModel {
 }
 
 #[derive(sqlx::FromRow, Debug)]
-pub struct TwitterDirectMessagesEditHistoryModel {
+pub struct TwitterDMEditHistoryModel {
     pub edited_text: String,
     pub created_at_sec: String,
 }
 
 #[derive(sqlx::FromRow, Debug)]
-pub struct TwitterDirectMessagesAttachmentsModel {
+pub struct TwitterDMAttachmentsModel {
     pub id: String,
     pub message_id: String,
     pub ordinal: u8,
@@ -44,24 +44,24 @@ pub struct TwitterDirectMessagesAttachmentsModel {
 
 #[derive(Debug)]
 pub struct TwitterDMRows {
-    pub main: Vec<TwitterDirectMessagesModel>,
-    pub reactions: Vec<TwitterDirectMessagesReactionsModel>,
-    pub edit_history: Vec<TwitterDirectMessagesEditHistoryModel>,
-    pub attachments: Vec<TwitterDirectMessagesAttachmentsModel>,
+    pub main: Vec<TwitterDMModel>,
+    pub reactions: Vec<TwitterDMReactionsModel>,
+    pub edit_history: Vec<TwitterDMEditHistoryModel>,
+    pub attachments: Vec<TwitterDMAttachmentsModel>,
 }
 
 pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
     let content_json: DirectMessagesSchema =
         serde_json::from_str::<DirectMessagesSchema>(&js_to_json(content_raw)).unwrap();
 
-    let mut dm_main: Vec<TwitterDirectMessagesModel> = Vec::new();
-    let mut dm_reactions: Vec<TwitterDirectMessagesReactionsModel> = Vec::new();
-    let mut dm_edit_history: Vec<TwitterDirectMessagesEditHistoryModel> = Vec::new();
-    let mut dm_attachments: Vec<TwitterDirectMessagesAttachmentsModel> = Vec::new();
+    let mut dm_main: Vec<TwitterDMModel> = Vec::new();
+    let mut dm_reactions: Vec<TwitterDMReactionsModel> = Vec::new();
+    let mut dm_edit_history: Vec<TwitterDMEditHistoryModel> = Vec::new();
+    let mut dm_attachments: Vec<TwitterDMAttachmentsModel> = Vec::new();
 
     for c in content_json {
         for message in c.dm_conversation.messages {
-            dm_main.push(TwitterDirectMessagesModel {
+            dm_main.push(TwitterDMModel {
                 id: Uuid::now_v7().to_string(),
                 account_id: account_id.to_string(),
                 other_user_id: "".to_string(), // TODO: Do migration to remove this or make it nullable
@@ -74,7 +74,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
             });
 
             for reaction in message.message_create.reactions {
-                dm_reactions.push(TwitterDirectMessagesReactionsModel {
+                dm_reactions.push(TwitterDMReactionsModel {
                     sender_id: reaction.sender_id,
                     reaction_key: reaction.reaction_key.to_string(),
                     event_id: reaction.event_id,
@@ -85,7 +85,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
 
             if let Some(edit_history) = message.message_create.edit_history {
                 for e in edit_history {
-                    dm_edit_history.push(TwitterDirectMessagesEditHistoryModel {
+                    dm_edit_history.push(TwitterDMEditHistoryModel {
                         edited_text: e.edited_text,
                         created_at_sec: e.created_at_sec,
                     });
@@ -115,7 +115,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
                             .unwrap()
                             .to_string();
 
-                        dm_attachments.push(TwitterDirectMessagesAttachmentsModel {
+                        dm_attachments.push(TwitterDMAttachmentsModel {
                             id: Uuid::now_v7().to_string(),
                             message_id: message.message_create.id.to_owned(),
                             ordinal: ordinal,
@@ -125,7 +125,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
                         ordinal += 1;
                     }
                 } else {
-                    dm_attachments.push(TwitterDirectMessagesAttachmentsModel {
+                    dm_attachments.push(TwitterDMAttachmentsModel {
                         id: Uuid::now_v7().to_string(),
                         message_id: message.message_create.id.to_owned(),
                         ordinal,
