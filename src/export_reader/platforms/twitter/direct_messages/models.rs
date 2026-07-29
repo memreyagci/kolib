@@ -21,6 +21,8 @@ pub struct TwitterDMModel {
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMReactionsModel {
+    pub(crate) id: String,
+    pub(crate) message_id: String,
     pub(crate) sender_id: String,
     pub(crate) reaction_key: String,
     pub(crate) event_id: String,
@@ -29,6 +31,8 @@ pub struct TwitterDMReactionsModel {
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMEditHistoryModel {
+    pub(crate) id: String,
+    pub(crate) message_id: String,
     pub(crate) edited_text: String,
     pub(crate) created_at_sec: String,
 }
