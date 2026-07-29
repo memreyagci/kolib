@@ -64,8 +64,9 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
 
     for c in content_json {
         for message in c.dm_conversation.messages {
+            let message_id = Uuid::now_v7().to_string();
             dm_main.push(TwitterDMModel {
-                id: Uuid::now_v7().to_string(),
+                id: message_id.to_owned(),
                 account_id: account_id.to_string(),
                 other_user_id: "".to_string(), // TODO: Do migration to remove this or make it nullable
                 conversation_id: c.dm_conversation.conversation_id.to_owned(),
@@ -78,6 +79,8 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
 
             for reaction in message.message_create.reactions {
                 dm_reactions.push(TwitterDMReactionsModel {
+                    id: Uuid::now_v7().to_string(),
+                    message_id: message_id.to_owned(), // not message_create.id, but the pk of the main table
                     sender_id: reaction.sender_id,
                     reaction_key: reaction.reaction_key.to_string(),
                     event_id: reaction.event_id,
@@ -89,6 +92,8 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
             if let Some(edit_history) = message.message_create.edit_history {
                 for e in edit_history {
                     dm_edit_history.push(TwitterDMEditHistoryModel {
+                        id: Uuid::now_v7().to_string(),
+                        message_id: message_id.to_owned(),
                         edited_text: e.edited_text,
                         created_at_sec: e.created_at_sec,
                     });
@@ -116,7 +121,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
 
                         dm_attachments.push(TwitterDMAttachmentsModel {
                             id: Uuid::now_v7().to_string(),
-                            message_id: message.message_create.id.to_owned(),
+                            message_id: message_id.to_owned(),
                             external: 0,
                             target: media_file_name,
                         });
@@ -124,7 +129,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
                 } else {
                     dm_attachments.push(TwitterDMAttachmentsModel {
                         id: Uuid::now_v7().to_string(),
-                        message_id: message.message_create.id.to_owned(),
+                        message_id: message_id.to_owned(),
                         external: 1,
                         target: url.expanded,
                     });
