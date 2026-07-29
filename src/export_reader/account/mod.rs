@@ -8,5 +8,6 @@
 //! An account is a requirement when an export/takeout file from a platform is to be imported.
 
 pub mod models;
-pub mod repo;
+mod repo;
 
+pub use repo::*;
