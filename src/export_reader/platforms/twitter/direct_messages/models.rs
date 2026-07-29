@@ -2,11 +2,11 @@ use chrono::DateTime;
 use regex::Regex;
 use uuid::Uuid;
 
-use crate::export_reader::platforms::twitter::direct_messages::schema::{
-    DirectMessagesSchema, EditHistory, Reaction,
-};
+use crate::export_reader::platforms::twitter::direct_messages::schema::DirectMessagesSchema;
 
-#[derive(sqlx::FromRow, Debug, Clone)]
+const TWITTER_DM_MEDIA_MARKER_PREFIX: &str = "https://twitter.com/messages/media/";
+
+#[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDirectMessagesModel {
     pub id: String,
     pub account_id: String,
@@ -17,72 +17,143 @@ pub struct TwitterDirectMessagesModel {
     pub recipient_id: String,
     pub text: String,
     pub created_at: i64,
-    // TODO: Turn reactions and edit_history into different tables
-    pub reactions: Vec<Reaction>,
-    pub edit_history: Option<Vec<EditHistory>>,
 }
 
-impl TwitterDirectMessagesModel {
-    pub(crate) fn new(account_id: Uuid, content_raw: String) -> Vec<Self> {
-        let content_json: DirectMessagesSchema =
-            serde_json::from_str::<DirectMessagesSchema>(&Self::js_to_json(content_raw)).unwrap();
+#[derive(sqlx::FromRow, Debug)]
+pub struct TwitterDirectMessagesReactionsModel {
+    pub sender_id: String,
+    pub reaction_key: String,
+    pub event_id: String,
+    pub created_at: i64,
+}
 
-        let mut rows: Vec<Self> = Vec::new();
+#[derive(sqlx::FromRow, Debug)]
+pub struct TwitterDirectMessagesEditHistoryModel {
+    pub edited_text: String,
+    pub created_at_sec: String,
+}
 
-        for c in content_json {
-            for m in c.dm_conversation.messages {
-                rows.push(TwitterDirectMessagesModel {
-                    id: Uuid::now_v7().to_string(),
-                    account_id: account_id.to_string(),
-                    other_user_id: "".to_string(), // TODO: Do migration to remove this or make it nullable
-                    conversation_id: c.dm_conversation.conversation_id.to_owned(),
-                    message_create_id: m.message_create.id,
-                    sender_id: m.message_create.sender_id,
-                    recipient_id: m.message_create.recipient_id,
-                    text: m.message_create.text,
-                    created_at: DateTime::parse_from_rfc3339(&m.message_create.created_at)
-                        .map(|dt| dt.timestamp())
-                        .unwrap_or(0),
-                    reactions: m.message_create.reactions,
-                    edit_history: m.message_create.edit_history,
+#[derive(sqlx::FromRow, Debug)]
+pub struct TwitterDirectMessagesAttachmentsModel {
+    pub id: String,
+    pub message_id: String,
+    pub ordinal: u8,
+    pub external: u8,
+    pub target: String,
+}
+
+#[derive(Debug)]
+pub struct TwitterDMRows {
+    pub main: Vec<TwitterDirectMessagesModel>,
+    pub reactions: Vec<TwitterDirectMessagesReactionsModel>,
+    pub edit_history: Vec<TwitterDirectMessagesEditHistoryModel>,
+    pub attachments: Vec<TwitterDirectMessagesAttachmentsModel>,
+}
+
+pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
+    let content_json: DirectMessagesSchema =
+        serde_json::from_str::<DirectMessagesSchema>(&js_to_json(content_raw)).unwrap();
+
+    let mut dm_main: Vec<TwitterDirectMessagesModel> = Vec::new();
+    let mut dm_reactions: Vec<TwitterDirectMessagesReactionsModel> = Vec::new();
+    let mut dm_edit_history: Vec<TwitterDirectMessagesEditHistoryModel> = Vec::new();
+    let mut dm_attachments: Vec<TwitterDirectMessagesAttachmentsModel> = Vec::new();
+
+    for c in content_json {
+        for message in c.dm_conversation.messages {
+            dm_main.push(TwitterDirectMessagesModel {
+                id: Uuid::now_v7().to_string(),
+                account_id: account_id.to_string(),
+                other_user_id: "".to_string(), // TODO: Do migration to remove this or make it nullable
+                conversation_id: c.dm_conversation.conversation_id.to_owned(),
+                message_create_id: message.message_create.id.to_owned(),
+                sender_id: message.message_create.sender_id,
+                recipient_id: message.message_create.recipient_id,
+                text: message.message_create.text,
+                created_at: date_to_unix_time_stamp(&message.message_create.created_at).unwrap(),
+            });
+
+            for reaction in message.message_create.reactions {
+                dm_reactions.push(TwitterDirectMessagesReactionsModel {
+                    sender_id: reaction.sender_id,
+                    reaction_key: reaction.reaction_key.to_string(),
+                    event_id: reaction.event_id,
+                    created_at: date_to_unix_time_stamp(&message.message_create.created_at)
+                        .unwrap(),
                 });
             }
-        }
 
-        rows
+            if let Some(edit_history) = message.message_create.edit_history {
+                for e in edit_history {
+                    dm_edit_history.push(TwitterDirectMessagesEditHistoryModel {
+                        edited_text: e.edited_text,
+                        created_at_sec: e.created_at_sec,
+                    });
+                }
+            }
+
+            for url in message.message_create.urls {
+                // Some messages have two urls/media files attached, and keeping the order is
+                // preferred, since there might images that only make when together and in their order.
+                let mut ordinal = 0;
+
+                // Consider having urls and attachments as 2 different tables.
+                if url.expanded
+                    == format!(
+                        "{TWITTER_DM_MEDIA_MARKER_PREFIX}{}",
+                        message.message_create.id.to_owned()
+                    )
+                {
+                    for media_url in message.message_create.media_urls.to_owned() {
+                        // file name as appears in twitter export files. It is the last part of the
+                        // media_url
+                        let media_file_name = url::Url::parse(&media_url)
+                            .unwrap()
+                            .path_segments()
+                            .unwrap()
+                            .last()
+                            .unwrap()
+                            .to_string();
+
+                        dm_attachments.push(TwitterDirectMessagesAttachmentsModel {
+                            id: Uuid::now_v7().to_string(),
+                            message_id: message.message_create.id.to_owned(),
+                            ordinal: ordinal,
+                            external: 0,
+                            target: media_file_name,
+                        });
+                        ordinal += 1;
+                    }
+                } else {
+                    dm_attachments.push(TwitterDirectMessagesAttachmentsModel {
+                        id: Uuid::now_v7().to_string(),
+                        message_id: message.message_create.id.to_owned(),
+                        ordinal,
+                        external: 1,
+                        target: url.expanded,
+                    });
+                }
+            }
+        }
     }
 
-    fn js_to_json(raw_content: String) -> String {
-        let re = Regex::new(r"^[^=]*=\s*|;$").unwrap();
-        let jsonized = re.replace_all(raw_content.trim(), "");
-
-        jsonized.to_string()
+    TwitterDMRows {
+        main: dm_main,
+        reactions: dm_reactions,
+        edit_history: dm_edit_history,
+        attachments: dm_attachments,
     }
 }
 
-#[cfg(test)]
-mod test {
-    use std::fs;
+fn date_to_unix_time_stamp(date: &str) -> Result<i64, ()> {
+    Ok(DateTime::parse_from_rfc3339(&date)
+        .map(|dt| dt.timestamp())
+        .unwrap_or(0))
+}
 
-    use uuid::Uuid;
+fn js_to_json(raw_content: String) -> String {
+    let re = Regex::new(r"^[^=]*=\s*|;$").unwrap();
+    let jsonized = re.replace_all(raw_content.trim(), "");
 
-    use crate::{
-        export_reader::{
-            account::models::Account,
-            platforms::twitter::direct_messages::models::TwitterDirectMessagesModel,
-        },
-        types::Platform,
-    };
-
-    #[test]
-    fn test_model_creation() {
-        let acc = AccountModel::new("test".to_string(), Platform::Twitter);
-        let cont = fs::read_to_string(
-            "/Users/emre/Documents/repos/koli-server/samples_real/dm_twitter.json",
-        )
-        .unwrap();
-        let tdm = TwitterDirectMessagesModel::new(acc.id(), cont);
-
-        println!("{tdm:?}");
-    }
+    jsonized.to_string()
 }
