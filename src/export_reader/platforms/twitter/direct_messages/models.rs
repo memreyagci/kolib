@@ -37,7 +37,6 @@ pub struct TwitterDMEditHistoryModel {
 pub struct TwitterDMAttachmentsModel {
     id: String,
     message_id: String,
-    ordinal: u8,
     external: u8,
     target: String,
 }
@@ -93,10 +92,6 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
             }
 
             for url in message.message_create.urls {
-                // Some messages have two urls/media files attached, and keeping the order is
-                // preferred, since there might images that only make when together and in their order.
-                let mut ordinal = 0;
-
                 // Consider having urls and attachments as 2 different tables.
                 if url.expanded
                     == format!(
@@ -118,17 +113,14 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
                         dm_attachments.push(TwitterDMAttachmentsModel {
                             id: Uuid::now_v7().to_string(),
                             message_id: message.message_create.id.to_owned(),
-                            ordinal: ordinal,
                             external: 0,
                             target: media_file_name,
                         });
-                        ordinal += 1;
                     }
                 } else {
                     dm_attachments.push(TwitterDMAttachmentsModel {
                         id: Uuid::now_v7().to_string(),
                         message_id: message.message_create.id.to_owned(),
-                        ordinal,
                         external: 1,
                         target: url.expanded,
                     });
