@@ -8,46 +8,46 @@ const TWITTER_DM_MEDIA_MARKER_PREFIX: &str = "https://twitter.com/messages/media
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMModel {
-    pub id: String,
-    pub account_id: String,
-    pub other_user_id: String,
-    pub conversation_id: String,
-    pub message_create_id: String,
-    pub sender_id: String,
-    pub recipient_id: String,
-    pub text: String,
-    pub created_at: i64,
+    id: String,
+    account_id: String,
+    other_user_id: String,
+    conversation_id: String,
+    message_create_id: String,
+    sender_id: String,
+    recipient_id: String,
+    text: String,
+    created_at: i64,
 }
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMReactionsModel {
-    pub sender_id: String,
-    pub reaction_key: String,
-    pub event_id: String,
-    pub created_at: i64,
+    sender_id: String,
+    reaction_key: String,
+    event_id: String,
+    created_at: i64,
 }
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMEditHistoryModel {
-    pub edited_text: String,
-    pub created_at_sec: String,
+    edited_text: String,
+    created_at_sec: String,
 }
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMAttachmentsModel {
-    pub id: String,
-    pub message_id: String,
-    pub ordinal: u8,
-    pub external: u8,
-    pub target: String,
+    id: String,
+    message_id: String,
+    ordinal: u8,
+    external: u8,
+    target: String,
 }
 
 #[derive(Debug)]
 pub struct TwitterDMRows {
-    pub main: Vec<TwitterDMModel>,
-    pub reactions: Vec<TwitterDMReactionsModel>,
-    pub edit_history: Vec<TwitterDMEditHistoryModel>,
-    pub attachments: Vec<TwitterDMAttachmentsModel>,
+    main: Vec<TwitterDMModel>,
+    reactions: Vec<TwitterDMReactionsModel>,
+    edit_history: Vec<TwitterDMEditHistoryModel>,
+    attachments: Vec<TwitterDMAttachmentsModel>,
 }
 
 pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
