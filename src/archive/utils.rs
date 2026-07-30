@@ -17,9 +17,7 @@ pub(crate) fn is_dir_empty(folder_path: impl AsRef<Path>) -> Result<bool, Archiv
     }
 }
 
-pub(crate) async fn get_pool_by_archive_path(
-    folder: &Path,
-) -> Result<SqlitePool, Box<dyn std::error::Error>> {
+pub(crate) async fn get_pool_by_archive_path(folder: &Path) -> Result<SqlitePool, ArchiveError> {
     let db_file_path = folder.join(DATABASE_FILE_NAME);
 
     let conn_opts = SqliteConnectOptions::new()

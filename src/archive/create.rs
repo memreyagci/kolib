@@ -17,7 +17,7 @@ pub async fn create(folder_path: &Path) -> Result<Archive, ArchiveError> {
         Err(ArchiveError::DirNotEmpty)
     } else {
         init_db(&folder_path).await?;
-        let pool = get_pool_by_archive_path(&folder_path).await.unwrap();
+        let pool = get_pool_by_archive_path(&folder_path).await?;
 
         Ok(Archive::new(pool, folder_path.to_path_buf()))
     }
@@ -28,12 +28,12 @@ async fn init_db(folder_path: &Path) -> Result<(), ArchiveError> {
     let db_url_str = folder_path
         .join(DATABASE_FILE_NAME)
         .to_str()
-        .unwrap()
+        .ok_or(ArchiveError::DatabaseUrl)?
         .to_owned();
 
     match Sqlite::create_database(&db_url_str).await {
         Ok(x) => {
-            let db = SqlitePool::connect(&db_url_str).await.unwrap();
+            let db = SqlitePool::connect(&db_url_str).await?;
             let contents = include_str!("../migrations/0000_gray_the_phantom.sql");
 
             sqlx::raw_sql(contents).execute(&db).await?;

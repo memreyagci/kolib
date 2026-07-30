@@ -17,8 +17,7 @@ pub async fn create(
         .bind(account.name())
         .bind(account.platform().to_string())
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
     Ok(account)
 }
@@ -35,8 +34,7 @@ pub async fn rename(
         .bind(new_name)
         .bind(account.id().to_string())
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
     Ok(Account::new(
         account.id(),
@@ -51,8 +49,7 @@ pub async fn delete(pool: &SqlitePool, account: Account) -> Result<(), AccountEr
     let _ = sqlx::query::<_>("DELETE FROM accounts WHERE id = ?")
         .bind(account.id().to_string())
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }
@@ -63,32 +60,30 @@ pub async fn get_by_id(pool: &SqlitePool, id: Uuid) -> Result<Account, AccountEr
     let account = sqlx::query::<_>("SELECT id, name, platform FROM accounts WHERE id = ?;")
         .bind(id.to_string())
         .fetch_one(pool)
-        .await
-        .unwrap();
+        .await?;
 
     Ok(Account::new(
-        Uuid::from_str(account.try_get("id").unwrap()).unwrap(),
-        account.try_get("name").unwrap(),
-        Platform::from_str(account.try_get("platform").unwrap()).unwrap(),
+        Uuid::from_str(account.try_get("id")?)?,
+        account.try_get("name")?,
+        Platform::from_str(account.try_get("platform")?)?,
     ))
 }
 
-pub async fn get_all(pool: &SqlitePool) -> Vec<Account> {
+pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Account>, AccountError> {
     // TODO: If not exists, it will panic. Handle it accordingly.
     let rows = sqlx::query::<_>("SELECT * FROM accounts;")
         .fetch_all(pool)
-        .await
-        .unwrap();
+        .await?;
 
     let mut accounts: Vec<Account> = Vec::new();
 
     for row in rows {
         accounts.push(Account::new(
-            Uuid::from_str(row.try_get("id").unwrap()).unwrap(),
-            row.try_get("name").unwrap(),
-            Platform::from_str(row.try_get("platform").unwrap()).unwrap(),
+            Uuid::from_str(row.try_get("id")?)?,
+            row.try_get("name")?,
+            Platform::from_str(row.try_get("platform")?)?,
         ));
     }
 
-    accounts
+    Ok(accounts)
 }

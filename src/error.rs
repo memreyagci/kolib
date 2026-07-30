@@ -21,6 +21,9 @@ pub enum ArchiveError {
 
     #[error("koli.db is not found")]
     InvalidArchive { reason: Option<String> },
+
+    #[error("Database URL could not be created")]
+    DatabaseUrl,
 }
 
 #[derive(Error, Debug)]
@@ -42,4 +45,10 @@ pub enum AccountError {
 
     #[error("sqlx error occured.")]
     SqlxError(#[from] sqlx::Error),
+
+    #[error("uuid error occured.")]
+    UuidError(#[from] uuid::Error),
+
+    #[error("strum error occured.")]
+    StrumError(#[from] strum::ParseError),
 }
