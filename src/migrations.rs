@@ -1,5 +1,5 @@
 use crate::consts::DATABASE_FILE_NAME;
-use sqlx::{Row, Sqlite, SqlitePool, migrate::MigrateDatabase};
+use sqlx::{Sqlite, SqlitePool, migrate::MigrateDatabase};
 
 use crate::error::ArchiveError;
 
@@ -21,22 +21,24 @@ pub async fn check_db_ver(folder_path: &str) -> Result<u8, ArchiveError> {
     } else {
         let db = SqlitePool::connect(&db_url).await.unwrap();
 
-        let result_drizzle_migration_table =
-            sqlx::query::<_>("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
-                .bind(DEPRECATED_MIGRATION_TABLA_NAME)
-                .fetch_one(&db)
-                .await?;
+        let result_drizzle_migration_table = sqlx::query!(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            DEPRECATED_MIGRATION_TABLA_NAME
+        )
+        .fetch_optional(&db)
+        .await?;
 
-        if result_drizzle_migration_table.is_empty() {
-            let result_migration_table =
-                sqlx::query::<_>("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
-                    .bind(MIGRATION_TABLE_NAME)
-                    .fetch_one(&db)
-                    .await?;
+        if result_drizzle_migration_table.is_none() {
+            let result_migration_table = sqlx::query!(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                MIGRATION_TABLE_NAME
+            )
+            .fetch_optional(&db)
+            .await?;
 
             db.close().await;
 
-            if result_migration_table.is_empty() {
+            if result_migration_table.is_none() {
                 Err(ArchiveError::InvalidArchive {
                     reason: Some(String::from("Migration table could not be found")),
                 })
