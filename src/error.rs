@@ -24,6 +24,11 @@ pub enum ArchiveError {
 
     #[error("Database URL could not be created")]
     DatabaseUrl,
+
+    #[error(
+        "kolib checks for __drizzle_migrations and kolib_migrations table to determine the version, and neither of them found."
+    )]
+    MigrationTableNotFound,
 }
 
 #[derive(Error, Debug)]
