@@ -22,7 +22,7 @@ pub struct TwitterDMModel {
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMReactionsModel {
     pub(crate) id: String,
-    pub(crate) message_id: String,
+    pub(crate) main_id: String,
     pub(crate) sender_id: String,
     pub(crate) reaction_key: String,
     pub(crate) event_id: String,
@@ -32,7 +32,7 @@ pub struct TwitterDMReactionsModel {
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMEditHistoryModel {
     pub(crate) id: String,
-    pub(crate) message_id: String,
+    pub(crate) main_id: String,
     pub(crate) edited_text: String,
     pub(crate) created_at_sec: String,
 }
@@ -40,7 +40,7 @@ pub struct TwitterDMEditHistoryModel {
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMAttachmentsModel {
     pub(crate) id: String,
-    pub(crate) message_id: String,
+    pub(crate) main_id: String,
     pub(crate) external: u8,
     pub(crate) target: String,
 }
@@ -80,7 +80,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
             for reaction in message.message_create.reactions {
                 dm_reactions.push(TwitterDMReactionsModel {
                     id: Uuid::now_v7().to_string(),
-                    message_id: message_id.to_owned(), // not message_create.id, but the pk of the main table
+                    main_id: message_id.to_owned(), // not message_create.id, but the pk of the main table
                     sender_id: reaction.sender_id,
                     reaction_key: reaction.reaction_key.to_string(),
                     event_id: reaction.event_id,
@@ -93,7 +93,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
                 for e in edit_history {
                     dm_edit_history.push(TwitterDMEditHistoryModel {
                         id: Uuid::now_v7().to_string(),
-                        message_id: message_id.to_owned(),
+                        main_id: message_id.to_owned(),
                         edited_text: e.edited_text,
                         created_at_sec: e.created_at_sec,
                     });
@@ -121,7 +121,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
 
                         dm_attachments.push(TwitterDMAttachmentsModel {
                             id: Uuid::now_v7().to_string(),
-                            message_id: message_id.to_owned(),
+                            main_id: message_id.to_owned(),
                             external: 0,
                             target: media_file_name,
                         });
@@ -129,7 +129,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
                 } else {
                     dm_attachments.push(TwitterDMAttachmentsModel {
                         id: Uuid::now_v7().to_string(),
-                        message_id: message_id.to_owned(),
+                        main_id: message_id.to_owned(),
                         external: 1,
                         target: url.expanded,
                     });
