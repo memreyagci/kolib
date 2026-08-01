@@ -14,7 +14,7 @@ pub async fn create(
 
     let _ = sqlx::query!(
         "INSERT INTO accounts (id, name, platform) VALUES (?, ?, ?)",
-        account.id(),
+        account.id().to_string(),
         account.name(),
         account.platform().to_string()
     )
