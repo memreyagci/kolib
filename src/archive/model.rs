@@ -20,4 +20,8 @@ impl Archive {
     pub fn folder(&self) -> &std::path::Path {
         &self.folder
     }
+
+    pub async fn close(self) {
+        self.pool.close().await;
+    }
 }
