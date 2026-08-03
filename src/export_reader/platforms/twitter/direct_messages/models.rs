@@ -102,8 +102,29 @@ pub(crate) fn get_rows(
                 }
             }
 
+            // TODO: Consider having URLs and attachments as 2 different tables.
             for url in message.message_create.urls {
-                // Consider having urls and attachments as 2 different tables.
+                // If "urls.expanded" starts with "https://twitter.com/messages/media/",
+                // that indicates it is a media attachment that can be found in direct_messages_media/
+                // directory, which is at the same path with other export files.
+                //
+                // It is not possible to derive the filename from "urls.expanded".
+                // However, it is with mediaUrls.
+                //
+                // Three types of mediaUrls that represent a local file in the archive:
+                //
+                // https://video.twimg.com/dm_gif/123/IdsidssISAONdwqio92Ie1n29djsal-DSijd392dA.mp4
+                // Filename would be: "123-IdsidssISAONdwqio92Ie1n29djsal-DSijd392dA.mp4"
+                //
+                // https://video.twimg.com/dm_video/123/vid/avc1/720x1066/IdsidssISAONdwqio92Ie1n29djsal-DSijd392dA.mp4?tag=1
+                // Filename would be: "123-IdsidssISAONdwqio92Ie1n29djsal-DSijd392dA.mp4"
+                //
+                // https://ton.twitter.com/dm/123/456/ABcD1E2g.jpg
+                // Filename would be: "123-ABcD1E2g.jpg"
+                //
+                // "123" is message_create.id. Thus, what we need is to merge message_create.id
+                // with the last path of the mediaUrl, and strip any query strings, if exists, such as
+                // "?tag=1" in the above example, and concatenate those two with a "-" between them.
                 if url.expanded
                     == format!(
                         "{TWITTER_DM_MEDIA_MARKER_PREFIX}{}",
@@ -111,15 +132,14 @@ pub(crate) fn get_rows(
                     )
                 {
                     for media_url in message.message_create.media_urls.to_owned() {
-                        // file name as appears in twitter export files. It is the last part of the
-                        // media_url
-                        let media_file_name = url::Url::parse(&media_url)
-                            .unwrap()
+                        let media_url_parsed = url::Url::parse(&media_url)?;
+                        let last_path = media_url_parsed
                             .path_segments()
-                            .unwrap()
-                            .last()
-                            .unwrap()
-                            .to_string();
+                            .ok_or("media_url couldn't be separated into segments.")?
+                            .next_back()
+                            .ok_or("media_url segments couldn't be iterated.")?;
+                        let media_file_name =
+                            format!("{}-{}", message.message_create.id, last_path);
 
                         dm_attachments.push(TwitterDMAttachmentsModel {
                             id: Uuid::now_v7().to_string(),
