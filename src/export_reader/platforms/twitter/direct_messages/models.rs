@@ -53,9 +53,12 @@ pub struct TwitterDMRows {
     pub(crate) attachments: Vec<TwitterDMAttachmentsModel>,
 }
 
-pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
+pub(crate) fn get_rows(
+    account_id: Uuid,
+    content_raw: String,
+) -> Result<TwitterDMRows, Box<dyn std::error::Error>> {
     let content_json: DirectMessagesSchema =
-        serde_json::from_str::<DirectMessagesSchema>(&js_to_json(content_raw)).unwrap();
+        serde_json::from_str::<DirectMessagesSchema>(&js_to_json(content_raw)?)?;
 
     let mut dm_main: Vec<TwitterDMModel> = Vec::new();
     let mut dm_reactions: Vec<TwitterDMReactionsModel> = Vec::new();
@@ -74,7 +77,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
                 sender_id: message.message_create.sender_id,
                 recipient_id: message.message_create.recipient_id,
                 text: message.message_create.text,
-                created_at: date_to_unix_time_stamp(&message.message_create.created_at).unwrap(),
+                created_at: date_to_unix_time_stamp(&message.message_create.created_at)?,
             });
 
             for reaction in message.message_create.reactions {
@@ -84,8 +87,7 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
                     sender_id: reaction.sender_id,
                     reaction_key: reaction.reaction_key.to_string(),
                     event_id: reaction.event_id,
-                    created_at: date_to_unix_time_stamp(&message.message_create.created_at)
-                        .unwrap(),
+                    created_at: date_to_unix_time_stamp(&message.message_create.created_at)?,
                 });
             }
 
@@ -138,23 +140,27 @@ pub(crate) fn get_rows(account_id: Uuid, content_raw: String) -> TwitterDMRows {
         }
     }
 
-    TwitterDMRows {
+    Ok(TwitterDMRows {
         main: dm_main,
         reactions: dm_reactions,
         edit_history: dm_edit_history,
         attachments: dm_attachments,
-    }
+    })
 }
 
-fn date_to_unix_time_stamp(date: &str) -> Result<i64, ()> {
-    Ok(DateTime::parse_from_rfc3339(&date)
-        .map(|dt| dt.timestamp())
-        .unwrap_or(0))
+fn date_to_unix_time_stamp(date: &str) -> Result<i64, chrono::ParseError> {
+    Ok(DateTime::parse_from_rfc3339(&date).map(|dt| dt.timestamp())?)
 }
 
-fn js_to_json(raw_content: String) -> String {
-    let re = Regex::new(r"^[^=]*=\s*|;$").unwrap();
+/// Removes the JavaScript variable declaration in .js files Twitter/X exports.
+/// For instance, direct-messages.js starts with:
+/// ```javascript
+/// window.YTD.direct_messages.part0 =
+/// ```
+/// When removed, we end up with a JSON array.
+fn js_to_json(raw_content: String) -> Result<String, regex::Error> {
+    let re = Regex::new(r"^[^=]*=\s*|;$")?;
     let jsonized = re.replace_all(raw_content.trim(), "");
 
-    jsonized.to_string()
+    Ok(jsonized.to_string())
 }
