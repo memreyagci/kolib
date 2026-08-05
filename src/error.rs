@@ -33,6 +33,9 @@ pub enum ArchiveError {
 
 #[derive(Error, Debug)]
 pub enum ExportReaderError {
+    #[error("{export_file_path} is not found.")]
+    ExportFileNotFound { export_file_path: String },
+
     #[error("I/O error occurred")]
     IoError(#[from] io::Error),
 
@@ -50,6 +53,21 @@ pub enum ExportReaderError {
 
     #[error("sqlx related error occurred")]
     SqlxError(#[from] sqlx::Error),
+
+    #[error("regex related error occurred")]
+    RegexError(#[from] regex::Error),
+
+    #[error("serde related error occurred")]
+    SerdeError(#[from] serde_json::Error),
+
+    #[error("chrono related error occurred")]
+    ChronoError(#[from] chrono::ParseError),
+
+    #[error("media path could not be parsed")]
+    MediaPathParseError,
+
+    #[error("url related error occurred")]
+    UrlError(#[from] url::ParseError),
 }
 
 #[derive(Error, Debug)]
