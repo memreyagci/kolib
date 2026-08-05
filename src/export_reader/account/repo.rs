@@ -1,16 +1,21 @@
-use std::str::FromStr;
+use std::{fs, path::Path, str::FromStr};
 
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
-use crate::{error::AccountError, export_reader::account::models::Account, types::Platform};
+use crate::{
+    archive::model::Archive, error::AccountError, export_reader::account::models::Account,
+    types::Platform,
+};
 
 pub async fn create(
-    pool: &SqlitePool,
+    archive: &Archive,
     name: &str,
     platform: Platform,
 ) -> Result<Account, AccountError> {
     let account = Account::new(Uuid::now_v7(), name.to_string(), platform);
+
+    let mut tx = archive.pool().begin().await?;
 
     let _ = sqlx::query!(
         "INSERT INTO accounts (id, name, platform) VALUES (?, ?, ?)",
@@ -18,8 +23,16 @@ pub async fn create(
         account.name(),
         account.platform().to_string()
     )
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+
+    fs::create_dir_all(
+        archive
+            .folder()
+            .join("accounts")
+            .join(account.id().to_string()),
+    )?;
+    tx.commit().await?;
 
     Ok(account)
 }
