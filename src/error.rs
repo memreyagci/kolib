@@ -33,14 +33,23 @@ pub enum ArchiveError {
 
 #[derive(Error, Debug)]
 pub enum ExportReaderError {
+    #[error("I/O error occurred")]
+    IoError(#[from] io::Error),
+
     #[error("Invalid or unsupport file for {platform}: {file_name}")]
     InvalidOrUnsupportedFileName { platform: String, file_name: String },
 
     #[error("file must be set.")]
     FileNotFound,
 
-    #[error("Account and importer platform doesn't match.")]
-    PlatformMismatch,
+    #[error("Account and importer platform doesn't match: {acc_platform} & {importer_platform}")]
+    PlatformMismatch {
+        acc_platform: String,
+        importer_platform: String,
+    },
+
+    #[error("sqlx related error occurred")]
+    SqlxError(#[from] sqlx::Error),
 }
 
 #[derive(Error, Debug)]
@@ -56,4 +65,7 @@ pub enum AccountError {
 
     #[error("strum error occured.")]
     StrumError(#[from] strum::ParseError),
+
+    #[error("I/O error occurred")]
+    IoError(#[from] io::Error),
 }
