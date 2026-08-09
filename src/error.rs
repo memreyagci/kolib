@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, num::ParseIntError};
 
 use thiserror::Error;
 
@@ -6,6 +6,9 @@ use thiserror::Error;
 pub enum ArchiveError {
     #[error("I/O error occurred")]
     IoError(#[from] io::Error),
+
+    #[error("Parse int error")]
+    ParseIntError(#[from] ParseIntError),
 
     #[error("Directory is not empty")]
     DirNotEmpty,
@@ -25,10 +28,8 @@ pub enum ArchiveError {
     #[error("Database URL could not be created")]
     DatabaseUrl,
 
-    #[error(
-        "kolib checks for __drizzle_migrations and kolib_migrations table to determine the version, and neither of them found."
-    )]
-    MigrationTableNotFound,
+    #[error("Migration error occured")]
+    MigrationError(#[from] MigrationError),
 }
 
 #[derive(Error, Debug)]
@@ -44,6 +45,12 @@ pub enum ExportReaderError {
 
     #[error("file must be set.")]
     FileNotFound,
+
+    #[error("{imported_filename} file is not supported by {importer_name}")]
+    InvalidFilename {
+        imported_filename: String,
+        importer_name: String,
+    },
 
     #[error("Account and importer platform doesn't match: {acc_platform} & {importer_platform}")]
     PlatformMismatch {
@@ -86,4 +93,27 @@ pub enum AccountError {
 
     #[error("I/O error occurred")]
     IoError(#[from] io::Error),
+}
+
+#[derive(Error, Debug)]
+pub enum MigrationError {
+    #[error("Parse int error")]
+    ParseIntError(#[from] ParseIntError),
+
+    #[error("Migration version could not be derived from {filename}")]
+    DeriveMigrationVersionError { filename: String },
+
+    #[error("Migration title could not be derived from {filename}")]
+    DeriveMigrationTitleError { filename: String },
+
+    #[error("Expected hash: {expected_hash:?}, actual hash of file: {actual_hash}")]
+    MigrationFileHashMismatch {
+        expected_hash: String,
+        actual_hash: String,
+    },
+
+    #[error(
+        "kolib checks for __drizzle_migrations and kolib_migrations table to determine the version, and neither of them found."
+    )]
+    MigrationTableNotFound,
 }
