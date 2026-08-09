@@ -5,44 +5,33 @@ use crate::{
         model::Archive,
         utils::{get_pool_by_archive_path, is_dir_empty},
     },
-    consts::DATABASE_FILE_NAME,
     error::ArchiveError,
 };
-
-use sqlx::{Sqlite, SqlitePool, migrate::MigrateDatabase};
 
 /// Creates a new Koli folder with a koli.db
 pub async fn create(folder_path: &Path) -> Result<Archive, ArchiveError> {
     if !is_dir_empty(&folder_path)? {
         Err(ArchiveError::DirNotEmpty)
     } else {
-        init_db(&folder_path).await?;
         let pool = get_pool_by_archive_path(&folder_path).await?;
+        let archive = Archive::new(pool, folder_path.to_path_buf());
+        init_db(&archive).await?;
 
-        Ok(Archive::new(pool, folder_path.to_path_buf()))
+        Ok(archive)
     }
 }
 
-// TODO: Add migration table, and move the .sql file in a proper dir
-async fn init_db(folder_path: &Path) -> Result<(), ArchiveError> {
-    let db_url_str = folder_path
-        .join(DATABASE_FILE_NAME)
-        .to_str()
-        .ok_or(ArchiveError::DatabaseUrl)?
-        .to_owned();
+async fn init_db(archive: &Archive) -> Result<(), ArchiveError> {
+    let migrations: Vec<&str> = vec![
+        include_str!("../migrations/0001__initial_drizzle_schema.sql"),
+        include_str!("../migrations/0002__rust_rewrite.sql"),
+    ];
 
-    match Sqlite::create_database(&db_url_str).await {
-        Ok(x) => {
-            let db = SqlitePool::connect(&db_url_str).await?;
-            let contents = include_str!("../migrations/0000_gray_the_phantom.sql");
-
-            sqlx::raw_sql(contents).execute(&db).await?;
-            db.close().await;
-
-            Ok(x)
-        }
-        Err(e) => Err(ArchiveError::SqlxError(e)),
+    for migration in migrations {
+        sqlx::raw_sql(migration).execute(archive.pool()).await?;
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
