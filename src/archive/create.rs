@@ -73,44 +73,31 @@ pub(crate) async fn setup_db(archive: &Archive) -> Result<(), ArchiveError> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::PathBuf};
+    use crate::{
+        archive,
+        error::ArchiveError,
+        migrations::check_db_ver,
+        test_helpers::{create_empty_dir_in_temp, create_non_empty_dir_in_temp},
+    };
 
-    use uuid::Uuid;
+    #[tokio::test]
+    async fn archive_creation_in_empty_dir_succeeds() {
+        let (_guard, empty_dir) = create_empty_dir_in_temp();
+        let archive = archive::create(&empty_dir).await;
 
-    use super::*;
-    use crate::consts::DATABASE_FILE_NAME;
-
-    // TODO: add negative tests
-
-    // To be able to test archive folder creations in an empty dir
-    fn create_an_empty_folder() -> PathBuf {
-        let tmp_dir = std::env::temp_dir();
-        let folder_name = Uuid::now_v7().to_string();
-        let empty_dir_path = tmp_dir.join(folder_name);
-
-        fs::create_dir(&empty_dir_path).unwrap();
-
-        empty_dir_path
+        assert!(archive.is_ok(), "Failed because of {archive:?}");
+        assert_eq!(check_db_ver(&archive.unwrap()).await.unwrap(), 2);
     }
 
     #[tokio::test]
-    async fn archive_creation_in_empty_dir_works() {
-        let empty_dir_path = create_an_empty_folder();
-        println!("{empty_dir_path:?}");
-
-        let result = match create(&empty_dir_path).await {
-            Ok(x) => Ok(x),
-            Err(e) => Err(e),
-        };
-
-        let db_path = empty_dir_path.join(DATABASE_FILE_NAME);
-
-        assert!(result.is_ok(), "Failed because of {result:?}");
+    async fn archive_creation_in_non_empty_dir_fails_with_dir_not_empty() {
+        let (_guard, empty_dir) = create_non_empty_dir_in_temp();
+        let archive = archive::create(&empty_dir).await;
 
         assert!(
-            fs::exists(&db_path).is_ok(),
-            "File {:?} does not exist in path",
-            db_path,
+            matches!(archive, Err(ArchiveError::DirNotEmpty)),
+            "Result was instead: {:?}",
+            archive
         );
     }
 }
