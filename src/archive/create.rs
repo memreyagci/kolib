@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::migrations::{Migration, check_db_ver};
 use crate::{
     archive::{
         model::Archive,
@@ -15,21 +16,57 @@ pub async fn create(folder_path: &Path) -> Result<Archive, ArchiveError> {
     } else {
         let pool = get_pool_by_archive_path(&folder_path).await?;
         let archive = Archive::new(pool, folder_path.to_path_buf());
-        init_db(&archive).await?;
+        setup_db(&archive).await?;
 
         Ok(archive)
     }
 }
 
-async fn init_db(archive: &Archive) -> Result<(), ArchiveError> {
-    let migrations: Vec<&str> = vec![
-        include_str!("../migrations/0001__initial_drizzle_schema.sql"),
-        include_str!("../migrations/0002__rust_rewrite.sql"),
-    ];
+/// Sets up the database for a given archive. It handles both initialization of an
+/// empty database, and migrations for an existing one.
+// TODO: Check if you should verify hashes here too.
+pub(crate) async fn setup_db(archive: &Archive) -> Result<(), ArchiveError> {
+    let mut tx = archive.pool().begin().await?;
 
-    for migration in migrations {
-        sqlx::raw_sql(migration).execute(archive.pool()).await?;
+    let mut curr_ver = check_db_ver(&archive).await?;
+
+    let migrations = Migration::get()?;
+
+    for m in &migrations {
+        if curr_ver < m.ver() {
+            sqlx::raw_sql(sqlx::AssertSqlSafe(m.file_content().clone()))
+                .execute(&mut *tx)
+                .await?;
+
+            // Since the current migration table only exists starting with version 2, we can only insert
+            // the first version's migration file details in version 2. Then, starting with version 2, we
+            // can insert them by looping through.
+            if curr_ver == 2 {
+                sqlx::query!(
+                    "INSERT INTO kolib_migrations (version, title, checksum) VALUES (?, ?, ?)",
+                    migrations[0].ver(),
+                    migrations[0].title(),
+                    migrations[0].hash(),
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+            if curr_ver >= 2 {
+                sqlx::query!(
+                    "INSERT INTO kolib_migrations (version, title, checksum) VALUES (?, ?, ?)",
+                    m.ver(),
+                    m.title(),
+                    m.hash(),
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+
+            curr_ver = check_db_ver(&archive).await?;
+        }
     }
+
+    tx.commit().await?;
 
     Ok(())
 }
