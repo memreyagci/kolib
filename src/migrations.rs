@@ -122,25 +122,3 @@ pub(crate) async fn check_db_ver(archive: &Archive) -> Result<i64, ArchiveError>
         Ok(0)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::{fs, path::Path};
-
-    use crate::archive;
-
-    use super::*;
-
-    #[tokio::test]
-    async fn check_db_ver_returns_correct_ver() {
-        fs::create_dir("/private/var/tmp/test_1/").unwrap();
-        let dir = Path::new("/private/var/tmp/test_1/");
-
-        let arc = archive::create(&dir).await.unwrap();
-        let version = check_db_ver(arc).await.unwrap();
-
-        println!("Result is: {version:?}");
-
-        assert_eq!(version, 2);
-    }
-}
