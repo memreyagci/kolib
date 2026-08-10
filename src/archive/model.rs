@@ -9,7 +9,7 @@ pub struct Archive {
 }
 
 impl Archive {
-    pub(crate) fn new(pool: SqlitePool, folder: PathBuf) -> Self {
+    pub fn new(pool: SqlitePool, folder: PathBuf) -> Self {
         Self { pool, folder }
     }
 

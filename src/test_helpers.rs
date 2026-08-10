@@ -4,7 +4,7 @@ use std::{fs::File, path::PathBuf};
 
 use tempfile::TempDir;
 
-use crate::archive::{self, model::Archive};
+use crate::archive::model::Archive;
 
 pub fn create_empty_dir_in_temp() -> (TempDir, PathBuf) {
     let temp_dir = tempfile::tempdir().unwrap();
@@ -20,9 +20,9 @@ pub fn create_non_empty_dir_in_temp() -> (TempDir, PathBuf) {
     (temp_dir, temp_dir_path)
 }
 
-pub async fn init_archive_in_temp_dir() -> (TempDir, PathBuf) {
+pub async fn init_archive_in_temp_dir() -> (TempDir, PathBuf, Archive) {
     let (temp_dir, temp_dir_path) = create_empty_dir_in_temp();
-    archive::create(&temp_dir_path).await.unwrap();
+    let archive = Archive::create(&temp_dir_path).await.unwrap();
 
-    (temp_dir, temp_dir_path)
+    (temp_dir, temp_dir_path, archive)
 }
