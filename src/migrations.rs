@@ -1,11 +1,10 @@
-use crate::error::ArchiveError;
-use crate::{archive::model::Archive, error::MigrationError};
+use crate::error::MigrationError;
 
 use hex_literal::hex;
 use sha2::{Digest, Sha256};
 
-const DEPRECATED_MIGRATION_TABLA_NAME: &str = "__drizzle_migrations";
-const MIGRATION_TABLE_NAME: &str = "kolib_migrations";
+pub(crate) const DEPRECATED_MIGRATION_TABLA_NAME: &str = "__drizzle_migrations";
+pub(crate) const MIGRATION_TABLE_NAME: &str = "kolib_migrations";
 
 const MIGRATIONS: &[(&str, &str, [u8; 32])] = &[
     (
@@ -88,37 +87,5 @@ impl Migration {
     }
     pub(crate) fn hash(&self) -> &String {
         &self.hash
-    }
-}
-
-pub(crate) async fn check_db_ver(archive: &Archive) -> Result<i64, ArchiveError> {
-    let result_drizzle_migration_table = sqlx::query!(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-        DEPRECATED_MIGRATION_TABLA_NAME
-    )
-    .fetch_optional(archive.pool())
-    .await?;
-
-    let result_kolib_migration_table = sqlx::query!(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-        MIGRATION_TABLE_NAME
-    )
-    .fetch_optional(archive.pool())
-    .await?;
-
-    if result_drizzle_migration_table.is_some() {
-        Ok(1)
-    } else if result_kolib_migration_table.is_some() {
-        // If the table is found, but no rows exist, it should default to 2, as this
-        // table is first initialized in that version, thus its rows do not exist yet.
-        let curr_ver: i64 = sqlx::query_scalar!(
-            "SELECT COALESCE(MAX(version), 2) as latest_version FROM kolib_migrations"
-        )
-        .fetch_one(archive.pool())
-        .await?;
-
-        Ok(curr_ver)
-    } else {
-        Ok(0)
     }
 }

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::migrations::{Migration, check_db_ver};
+use crate::migrations::Migration;
 use crate::{
     archive::{
         model::Archive,
@@ -28,7 +28,7 @@ pub async fn create(folder_path: &Path) -> Result<Archive, ArchiveError> {
 pub(crate) async fn setup_db(archive: &Archive) -> Result<(), ArchiveError> {
     let mut tx = archive.pool().begin().await?;
 
-    let mut curr_ver = check_db_ver(&archive).await?;
+    let mut curr_ver = archive.db_version().await?;
 
     let migrations = Migration::get()?;
 
@@ -62,7 +62,7 @@ pub(crate) async fn setup_db(archive: &Archive) -> Result<(), ArchiveError> {
                 .await?;
             }
 
-            curr_ver = check_db_ver(&archive).await?;
+            curr_ver = archive.db_version().await?;
         }
     }
 
@@ -76,7 +76,6 @@ mod tests {
     use crate::{
         archive,
         error::ArchiveError,
-        migrations::check_db_ver,
         test_helpers::{create_empty_dir_in_temp, create_non_empty_dir_in_temp},
     };
 
@@ -86,7 +85,7 @@ mod tests {
         let archive = archive::create(&empty_dir).await;
 
         assert!(archive.is_ok(), "Failed because of {archive:?}");
-        assert_eq!(check_db_ver(&archive.unwrap()).await.unwrap(), 2);
+        assert_eq!(archive.unwrap().db_version().await.unwrap(), 2);
     }
 
     #[tokio::test]

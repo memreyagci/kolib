@@ -40,17 +40,16 @@ mod tests {
     use crate::{
         archive::{self},
         error::ArchiveError,
-        migrations::check_db_ver,
         test_helpers::{create_non_empty_dir_in_temp, init_archive_in_temp_dir},
     };
 
     #[tokio::test]
     async fn opening_valid_archive_succeeds() {
-        let (_guard, archive_dir) = init_archive_in_temp_dir().await;
+        let (_guard, archive_dir, _) = init_archive_in_temp_dir().await;
         let archive = archive::open(&archive_dir).await;
 
         assert!(archive.is_ok());
-        assert_eq!(check_db_ver(&archive.unwrap()).await.unwrap(), 2);
+        assert_eq!(archive.unwrap().db_version().await.unwrap(), 2);
     }
 
     #[tokio::test]
