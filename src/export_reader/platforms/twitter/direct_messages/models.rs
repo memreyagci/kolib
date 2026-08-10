@@ -2,7 +2,10 @@ use chrono::DateTime;
 use regex::Regex;
 use uuid::Uuid;
 
-use crate::export_reader::platforms::twitter::direct_messages::schema::DirectMessagesSchema;
+use crate::{
+    error::ExportReaderError,
+    export_reader::platforms::twitter::direct_messages::schema::DirectMessagesSchema,
+};
 
 const TWITTER_DM_MEDIA_MARKER_PREFIX: &str = "https://twitter.com/messages/media/";
 
@@ -56,7 +59,7 @@ pub struct TwitterDMRows {
 pub(crate) fn get_rows(
     account_id: Uuid,
     content_raw: String,
-) -> Result<TwitterDMRows, Box<dyn std::error::Error>> {
+) -> Result<TwitterDMRows, ExportReaderError> {
     let content_json: DirectMessagesSchema =
         serde_json::from_str::<DirectMessagesSchema>(&js_to_json(content_raw)?)?;
 
@@ -135,9 +138,9 @@ pub(crate) fn get_rows(
                         let media_url_parsed = url::Url::parse(&media_url)?;
                         let last_path = media_url_parsed
                             .path_segments()
-                            .ok_or("media_url couldn't be separated into segments.")?
+                            .ok_or(ExportReaderError::MediaPathParseError)?
                             .next_back()
-                            .ok_or("media_url segments couldn't be iterated.")?;
+                            .ok_or(ExportReaderError::MediaPathParseError)?;
                         let media_file_name =
                             format!("{}-{}", message.message_create.id, last_path);
 
