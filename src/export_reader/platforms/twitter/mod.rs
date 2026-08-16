@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::error::ExportReaderError;
+use crate::{error::ExportReaderError, export_reader::account::models::Account};
 
 pub mod direct_messages;
 
@@ -54,7 +54,7 @@ impl TwitterImport {
 
             Ok(jsonized.to_string())
         } else {
-            Err(ExportReaderError::FileContentNotFound)
+            Err(ExportReaderError::FileNotFound)
         }
     }
 }
