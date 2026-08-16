@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{error::ExportReaderError, export_reader::account::Account};
+use crate::{error::ExportReaderError, export_reader::account::models::Account};
 
 pub mod account;
 pub mod platforms;
