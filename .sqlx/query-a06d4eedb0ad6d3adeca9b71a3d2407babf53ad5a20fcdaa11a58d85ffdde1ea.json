@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO twitter_direct_messages\n                (id, account_id, other_user_id, conversation_id,\n                message_create_id, sender_id, recipient_id, text, created_at)\n                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "a06d4eedb0ad6d3adeca9b71a3d2407babf53ad5a20fcdaa11a58d85ffdde1ea"
+}

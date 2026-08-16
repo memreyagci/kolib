@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO kolib_migrations (version, title, checksum) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "f36a62f03967e311307bcd1d2377d5704bdd6ac8fd3f138a32fcf47c2a8b1897"
+}
