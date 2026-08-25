@@ -83,7 +83,7 @@ pub enum ReactionKey {
     #[strum(to_string = "👍")]
     Agree,
 
-    #[strum(to_string = "👍")]
+    #[strum(to_string = "👎")]
     Disagree,
 
     // Some "reaction_key"s are represented with "emoji" keyword, so it is not possible to know
