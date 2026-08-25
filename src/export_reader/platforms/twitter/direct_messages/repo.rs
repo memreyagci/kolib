@@ -60,10 +60,10 @@ pub async fn import(
 
             for attachment in &to_import.attachments {
                 if attachment.external == 0 {
-                    fs::copy(
+                    let _ = fs::copy(
                         dm_media_dir.join(&attachment.target),
                         &tmp_tw_dm_dir.join("media").join(&attachment.target),
-                    )?;
+                    );
                 }
             }
         }
