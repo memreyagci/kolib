@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::types::Platform;
+use crate::{error::AccountError, types::Platform};
 
 #[derive(Debug)]
 pub struct Account {
@@ -35,5 +35,13 @@ impl Account {
     }
     pub fn platform(&self) -> &Platform {
         &self.platform
+    }
+
+    pub(crate) fn validate_name(name: &str) -> Result<(), AccountError> {
+        if name.trim().is_empty() {
+            return Err(AccountError::InvalidName);
+        }
+
+        Ok(())
     }
 }

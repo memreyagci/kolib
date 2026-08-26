@@ -13,6 +13,8 @@ impl Account {
         name: &str,
         platform: Platform,
     ) -> Result<Self, AccountError> {
+        Self::validate_name(name)?;
+
         let account = Self::new(Uuid::now_v7(), name.to_string(), platform);
 
         let mut tx = archive.pool().begin().await?;

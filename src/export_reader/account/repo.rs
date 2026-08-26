@@ -16,6 +16,8 @@ impl Account {
         account: Self,
         new_name: &str,
     ) -> Result<Self, AccountError> {
+        Self::validate_name(new_name)?;
+
         // TODO: Make errors more verbose, e.g "account with ID: {id} doesn't exist"
         let _ = sqlx::query!(
             "UPDATE accounts SET name = ? WHERE id = ?",

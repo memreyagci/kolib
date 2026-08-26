@@ -79,8 +79,8 @@ pub enum ExportReaderError {
 
 #[derive(Error, Debug)]
 pub enum AccountError {
-    #[error("Account name is not set.")]
-    AccountNameNull,
+    #[error("Account name cannot be empty or contain only whitespace.")]
+    InvalidName,
 
     #[error("sqlx error occured.")]
     SqlxError(#[from] sqlx::Error),
