@@ -50,44 +50,50 @@ impl Archive {
     /// Sets up the database for a given archive. It handles both initialization of an
     /// empty database, and migrations for an existing one.
     // TODO: Check if you should verify hashes here too.
+    // TODO: tw_dm subtable rows need to be generated out of the first version's single row
+    // arrays.
     pub(super) async fn setup_db(archive: &Archive) -> Result<(), ArchiveError> {
-        let mut tx = archive.pool().begin().await?;
+        let migrations = Migration::get()?;
         let mut curr_ver = archive.db_version().await?;
 
-        let migrations = Migration::get()?;
+        let mut tx = archive.pool().begin().await?;
 
         for m in &migrations {
-            if curr_ver < m.ver() {
-                sqlx::raw_sql(sqlx::AssertSqlSafe(m.file_content().clone()))
-                    .execute(&mut *tx)
-                    .await?;
-
-                // Since the current migration table only exists starting with version 2, we can only insert
-                // the first version's migration file details in version 2. Then, starting with version 2, we
-                // can insert them by looping through.
-                if curr_ver == 2 {
-                    sqlx::query!(
-                        "INSERT INTO kolib_migrations (version, title, checksum) VALUES (?, ?, ?)",
-                        migrations[0].ver(),
-                        migrations[0].title(),
-                        migrations[0].hash(),
-                    )
-                    .execute(&mut *tx)
-                    .await?;
-                }
-                if curr_ver >= 2 {
-                    sqlx::query!(
-                        "INSERT INTO kolib_migrations (version, title, checksum) VALUES (?, ?, ?)",
-                        m.ver(),
-                        m.title(),
-                        m.hash(),
-                    )
-                    .execute(&mut *tx)
-                    .await?;
-                }
-
-                curr_ver = archive.db_version().await?;
+            if curr_ver >= m.ver() {
+                continue;
             }
+
+            sqlx::raw_sql(sqlx::AssertSqlSafe(m.file_content().clone()))
+                .execute(&mut *tx)
+                .await?;
+
+            // Since the current migration table only exists starting with version 2, we can only insert
+            // the first version's migration file details in version 2. Then, starting with version 2, we
+            // can insert them by looping through.
+            if m.ver() == 2 {
+                let first_migration = &migrations[0];
+
+                sqlx::query!(
+                    "INSERT INTO kolib_migrations (version, title, checksum) VALUES (?, ?, ?)",
+                    first_migration.ver(),
+                    first_migration.title(),
+                    first_migration.hash(),
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+            if m.ver() >= 2 {
+                sqlx::query!(
+                    "INSERT INTO kolib_migrations (version, title, checksum) VALUES (?, ?, ?)",
+                    m.ver(),
+                    m.title(),
+                    m.hash(),
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+
+            curr_ver = m.ver();
         }
 
         tx.commit().await?;
