@@ -14,16 +14,16 @@ impl Archive {
         let folder = folder_path.as_ref().to_path_buf();
         let files = get_dir_content(folder_path.as_ref())?;
 
-        if !files.contains(&DATABASE_FILE_NAME.to_string()) {
-            Err(ArchiveError::InvalidArchive { reason: (None) })
-        } else {
-            let pool = get_pool_by_archive_path(&folder).await?;
-            let archive = Self::new(pool, folder);
-
-            Self::setup_db(&archive).await?;
-
-            Ok(archive)
+        if !files.iter().any(|file| file == DATABASE_FILE_NAME) {
+            return Err(ArchiveError::InvalidArchive { reason: (None) });
         }
+
+        let pool = get_pool_by_archive_path(&folder).await?;
+        let archive = Self::new(pool, folder);
+
+        Self::setup_db(&archive).await?;
+
+        Ok(archive)
     }
 }
 

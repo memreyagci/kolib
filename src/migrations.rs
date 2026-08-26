@@ -62,14 +62,14 @@ impl Migration {
                     expected_hash: hex::encode(calculated_hash),
                     actual_hash: hex::encode(hash),
                 });
-            } else {
-                migrations.push(Migration {
-                    title,
-                    ver,
-                    file_content: content.to_string(),
-                    hash: hex::encode(calculated_hash),
-                });
             }
+
+            migrations.push(Migration {
+                title,
+                ver,
+                file_content: content.to_string(),
+                hash: hex::encode(calculated_hash),
+            });
         }
         migrations.sort_by_key(|m| m.ver);
 
