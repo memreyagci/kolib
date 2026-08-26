@@ -62,20 +62,20 @@ impl Account {
     }
 
     pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Self>, AccountError> {
-        // TODO: If not exists, it will panic. Handle it accordingly.
-        let rows = sqlx::query!("SELECT * FROM accounts;")
+        let rows = sqlx::query!("SELECT id, name, platform FROM accounts;")
             .fetch_all(pool)
             .await?;
 
-        let mut accounts: Vec<Self> = Vec::new();
-
-        for row in rows {
-            accounts.push(Self::new(
-                Uuid::from_str(&row.id)?,
-                row.name,
-                Platform::from_str(&row.platform)?,
-            ));
-        }
+        let accounts: Vec<Self> = rows
+            .into_iter()
+            .map(|row| -> Result<Self, AccountError> {
+                Ok(Self::new(
+                    Uuid::from_str(&row.id)?,
+                    row.name,
+                    Platform::from_str(&row.platform)?,
+                ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(accounts)
     }
