@@ -90,7 +90,7 @@ pub(crate) fn get_rows(
                     sender_id: reaction.sender_id,
                     reaction_key: reaction.reaction_key.to_string(),
                     event_id: reaction.event_id,
-                    created_at: date_to_unix_time_stamp(&message.message_create.created_at)?,
+                    created_at: date_to_unix_time_stamp(&reaction.created_at)?,
                 });
             }
 
