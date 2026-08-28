@@ -69,7 +69,7 @@ pub struct EditHistory {
 pub struct Reaction {
     pub sender_id: String,
 
-    pub reaction_key: ReactionKey,
+    pub reaction_key: String,
 
     pub event_id: String,
 
