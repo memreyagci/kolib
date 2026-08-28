@@ -16,6 +16,7 @@ use crate::{
 // TODO: Return a result struct that gives feedback about the import process.
 // For instance, how many conversations, messages, etc. inserted.
 // Missing media files. and so on.
+// TODO: Consider having account_id + dataset_id + platform as identifier
 pub async fn import(
     archive: &Archive,
     account: &Account,
@@ -71,13 +72,15 @@ pub async fn import(
     if let Some(efd) = export_file_dir {
         let dm_media_dir = efd.join("direct_messages_media");
 
-        for attachment in &to_import.attachments {
-            if attachment.external == 0 {
-                let _ = fs::copy(
-                    dm_media_dir.join(&attachment.target),
-                    &tmp_tw_dm_dir.join("media").join(&attachment.target),
-                );
-            }
+        for attachment in to_import
+            .attachments
+            .iter()
+            .filter(|attachment| attachment.external == 0)
+        {
+            let _ = fs::copy(
+                dm_media_dir.join(&attachment.target),
+                &tmp_tw_dm_dir.join("media").join(&attachment.target),
+            );
         }
     }
 
@@ -116,9 +119,8 @@ pub async fn import(
     for reactions in &to_import.reactions {
         sqlx::query!(
             "INSERT INTO twitter_dm_reactions
-                (id, main_id, sender_id, reaction_key, event_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)",
-            &reactions.id,
+                (main_id, sender_id, reaction_key, event_id, created_at)
+                VALUES (?, ?, ?, ?, ?)",
             &reactions.main_id,
             &reactions.sender_id,
             &reactions.reaction_key,
@@ -132,10 +134,10 @@ pub async fn import(
     for edits in &to_import.edit_history {
         sqlx::query!(
             "INSERT INTO twitter_dm_edit_history
-                (id, main_id, edited_text, created_at_sec)
+                (main_id, ordinal, edited_text, created_at_sec)
                 VALUES (?, ?, ?, ?)",
-            &edits.id,
             &edits.main_id,
+            &edits.ordinal,
             &edits.edited_text,
             &edits.created_at_sec
         )
@@ -159,7 +161,7 @@ pub async fn import(
             &attachment.external,
             &attachment.target
         )
-        .fetch_all(&mut *tx)
+        .execute(&mut *tx)
         .await?;
     }
 

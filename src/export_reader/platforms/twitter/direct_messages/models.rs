@@ -24,18 +24,17 @@ pub struct TwitterDMModel {
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMReactionsModel {
-    pub(crate) id: String,
     pub(crate) main_id: String,
+    pub(crate) event_id: String,
     pub(crate) sender_id: String,
     pub(crate) reaction_key: String,
-    pub(crate) event_id: String,
     pub(crate) created_at: i64,
 }
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMEditHistoryModel {
-    pub(crate) id: String,
     pub(crate) main_id: String,
+    pub(crate) ordinal: i64,
     pub(crate) edited_text: String,
     pub(crate) created_at_sec: String,
 }
@@ -85,22 +84,21 @@ pub(crate) fn get_rows(
 
             for reaction in message.message_create.reactions {
                 dm_reactions.push(TwitterDMReactionsModel {
-                    id: Uuid::now_v7().to_string(),
                     main_id: message_id.to_owned(), // not message_create.id, but the pk of the main table
-                    sender_id: reaction.sender_id,
-                    reaction_key: reaction.reaction_key.to_string(),
                     event_id: reaction.event_id,
+                    sender_id: reaction.sender_id,
+                    reaction_key: reaction.reaction_key,
                     created_at: date_to_unix_time_stamp(&reaction.created_at)?,
                 });
             }
 
             if let Some(edit_history) = message.message_create.edit_history {
-                for e in edit_history {
+                for (ordinal, edit) in edit_history.into_iter().enumerate() {
                     dm_edit_history.push(TwitterDMEditHistoryModel {
-                        id: Uuid::now_v7().to_string(),
                         main_id: message_id.to_owned(),
-                        edited_text: e.edited_text,
-                        created_at_sec: e.created_at_sec,
+                        ordinal: ordinal as i64,
+                        edited_text: edit.edited_text,
+                        created_at_sec: edit.created_at_sec,
                     });
                 }
             }
