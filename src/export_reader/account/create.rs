@@ -1,9 +1,9 @@
 use std::fs;
 
-use uuid::Uuid;
-
 use crate::{
-    archive::model::Archive, error::AccountError, export_reader::account::models::Account,
+    archive::model::Archive,
+    error::AccountError,
+    export_reader::account::models::{Account, AccountId},
     types::Platform,
 };
 
@@ -15,7 +15,7 @@ impl Account {
     ) -> Result<Self, AccountError> {
         Self::validate_name(name)?;
 
-        let account = Self::new(Uuid::now_v7(), name.to_string(), platform);
+        let account = Self::new(AccountId::new(), name.to_string(), platform);
 
         let mut tx = archive.pool().begin().await?;
 
@@ -57,14 +57,14 @@ mod tests {
         assert!(acc_result.is_ok());
 
         let acc = acc_result.unwrap();
-        let acc_id = acc.id();
+        let acc_id = acc.id().clone();
 
         assert!(Account::get_by_id(archive.pool(), acc.id()).await.is_ok());
         assert!(acc.delete(&archive).await.is_ok());
 
         // After deletion, we should not be able to fetch the deleted Account by id.
         assert!(matches!(
-            Account::get_by_id(archive.pool(), acc_id).await,
+            Account::get_by_id(archive.pool(), &acc_id).await,
             Err(AccountError::SqlxError(RowNotFound))
         ));
     }

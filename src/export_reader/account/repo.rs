@@ -1,12 +1,11 @@
 use std::str::FromStr;
 
 use sqlx::SqlitePool;
-use uuid::Uuid;
 
 use crate::{
     archive::model::Archive,
     error::AccountError,
-    export_reader::account::models::{Account, Dataset},
+    export_reader::account::models::{Account, AccountId, Dataset},
     types::Platform,
 };
 
@@ -30,7 +29,7 @@ impl Account {
         .await?;
 
         Ok(Account::new(
-            account.id(),
+            account.id().clone(),
             new_name.to_owned(),
             account.platform().to_owned(),
         ))
@@ -47,7 +46,7 @@ impl Account {
     }
 
     /// Returns an Account instance by its id, which is the unique identifier.
-    pub async fn get_by_id(pool: &SqlitePool, id: Uuid) -> Result<Self, AccountError> {
+    pub async fn get_by_id(pool: &SqlitePool, id: &AccountId) -> Result<Self, AccountError> {
         // TODO: Make errors more verbose, e.g "account with ID: {id} doesn't exist"
         let account = sqlx::query!(
             "SELECT id, name, platform FROM accounts WHERE id = ?;",
@@ -57,7 +56,7 @@ impl Account {
         .await?;
 
         Ok(Self::new(
-            Uuid::from_str(&account.id)?,
+            AccountId::from_str(&account.id)?,
             account.name,
             Platform::from_str(&account.platform)?,
         ))
@@ -75,7 +74,7 @@ impl Account {
             .into_iter()
             .map(|row| -> Result<Dataset, AccountError> {
                 Ok(Dataset::new(
-                    Uuid::from_str(&row.account_id)?,
+                    AccountId::from_str(&row.account_id)?,
                     row.dataset_type,
                 ))
             })
@@ -93,7 +92,7 @@ impl Account {
             .into_iter()
             .map(|row| -> Result<Self, AccountError> {
                 Ok(Self::new(
-                    Uuid::from_str(&row.id)?,
+                    AccountId::from_str(&row.id)?,
                     row.name,
                     Platform::from_str(&row.platform)?,
                 ))

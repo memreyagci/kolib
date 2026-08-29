@@ -4,7 +4,10 @@ use uuid::Uuid;
 
 use crate::{
     error::ExportReaderError,
-    export_reader::platforms::twitter::direct_messages::schema::DirectMessagesSchema,
+    export_reader::{
+        account::models::AccountId,
+        platforms::twitter::direct_messages::schema::DirectMessagesSchema,
+    },
 };
 
 const TWITTER_DM_MEDIA_MARKER_PREFIX: &str = "https://twitter.com/messages/media/";
@@ -56,7 +59,7 @@ pub struct TwitterDMRows {
 }
 
 pub(crate) fn get_rows(
-    account_id: Uuid,
+    account_id: &AccountId,
     content_raw: String,
 ) -> Result<TwitterDMRows, ExportReaderError> {
     let content_json: DirectMessagesSchema =
@@ -67,12 +70,14 @@ pub(crate) fn get_rows(
     let mut dm_edit_history: Vec<TwitterDMEditHistoryModel> = Vec::new();
     let mut dm_attachments: Vec<TwitterDMAttachmentsModel> = Vec::new();
 
+    let account_id = account_id.to_string();
+
     for c in content_json {
         for message in c.dm_conversation.messages {
             let message_id = Uuid::now_v7().to_string();
             dm_main.push(TwitterDMModel {
                 id: message_id.to_owned(),
-                account_id: account_id.to_string(),
+                account_id: account_id.clone(),
                 other_user_id: "".to_string(), // TODO: Do migration to remove this or make it nullable
                 conversation_id: c.dm_conversation.conversation_id.to_owned(),
                 message_create_id: message.message_create.id.to_owned(),
