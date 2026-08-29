@@ -4,7 +4,9 @@ use sqlx::SqlitePool;
 use uuid::Uuid;
 
 use crate::{
-    archive::model::Archive, error::AccountError, export_reader::account::models::Account,
+    archive::model::Archive,
+    error::AccountError,
+    export_reader::account::models::{Account, Dataset},
     types::Platform,
 };
 
@@ -59,6 +61,27 @@ impl Account {
             account.name,
             Platform::from_str(&account.platform)?,
         ))
+    }
+
+    pub async fn get_datasets(&self, archive: &Archive) -> Result<Vec<Dataset>, AccountError> {
+        let rows = sqlx::query!(
+            "SELECT account_id, dataset_type FROM account_datasets WHERE account_id = ?;",
+            self.id()
+        )
+        .fetch_all(archive.pool())
+        .await?;
+
+        let datasets: Vec<Dataset> = rows
+            .into_iter()
+            .map(|row| -> Result<Dataset, AccountError> {
+                Ok(Dataset::new(
+                    Uuid::from_str(&row.account_id)?,
+                    row.dataset_type,
+                ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(datasets)
     }
 
     pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Self>, AccountError> {

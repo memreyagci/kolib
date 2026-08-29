@@ -45,3 +45,24 @@ impl Account {
         Ok(())
     }
 }
+
+pub struct Dataset {
+    account_id: Uuid,
+    dataset_type: String,
+}
+
+impl Dataset {
+    pub(super) fn new(account_id: Uuid, dataset_type: String) -> Self {
+        Dataset {
+            account_id,
+            dataset_type,
+        }
+    }
+
+    pub fn account_id(&self) -> Uuid {
+        self.account_id
+    }
+    pub fn dataset_type(&self) -> &String {
+        &self.dataset_type
+    }
+}
