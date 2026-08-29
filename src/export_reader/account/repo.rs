@@ -66,7 +66,7 @@ impl Account {
     pub async fn get_datasets(&self, archive: &Archive) -> Result<Vec<Dataset>, AccountError> {
         let rows = sqlx::query!(
             "SELECT account_id, dataset_type FROM account_datasets WHERE account_id = ?;",
-            self.id()
+            self.id().to_string()
         )
         .fetch_all(archive.pool())
         .await?;
