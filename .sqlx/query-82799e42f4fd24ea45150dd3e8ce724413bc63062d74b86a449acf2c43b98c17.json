@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM accounts;",
+  "query": "SELECT id, name, platform FROM accounts;",
   "describe": {
     "columns": [
       {
@@ -35,17 +35,6 @@
             "name": "platform"
           }
         }
-      },
-      {
-        "name": "user_id",
-        "ordinal": 3,
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "accounts",
-            "name": "user_id"
-          }
-        }
       }
     ],
     "parameters": {
@@ -54,9 +43,8 @@
     "nullable": [
       false,
       false,
-      false,
-      true
+      false
     ]
   },
-  "hash": "ffe280ea74e64d15c08206a50d16cf3c978e93615c80dc9a8d44bfd3caefdfb4"
+  "hash": "82799e42f4fd24ea45150dd3e8ce724413bc63062d74b86a449acf2c43b98c17"
 }

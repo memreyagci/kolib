@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO twitter_dm_reactions\n                (main_id, sender_id, reaction_key, event_id, created_at)\n                VALUES (?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "d2e68c2eb1edb4154016d686bb8e40d76312020e904d9eb341a2f4ec17a5c798"
+}

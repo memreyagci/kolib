@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO twitter_dm_edit_history\n                (main_id, ordinal, edited_text, created_at_sec)\n                VALUES (?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "3a56253673499156dd47bc576779dc75aca45caffe49d639121de0ff8092eeec"
+}

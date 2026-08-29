@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT account_id, dataset_type FROM account_datasets WHERE account_id = ?;",
+  "describe": {
+    "columns": [
+      {
+        "name": "account_id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "account_datasets",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "name": "dataset_type",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "account_datasets",
+            "name": "dataset_type"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "9ba540aa7a0f34c96b7eebb7ec73edebc7af9e24b2c13b4090a168b828ebda83"
+}
