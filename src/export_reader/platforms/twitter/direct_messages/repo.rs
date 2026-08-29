@@ -176,5 +176,4 @@ pub async fn import(
     tx.commit().await?;
 
     Ok(())
-    }
 }
