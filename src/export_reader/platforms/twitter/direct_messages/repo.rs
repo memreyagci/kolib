@@ -91,7 +91,7 @@ pub async fn import(
             (account_id, dataset_type)
             VALUES (?, ?)",
         account.id().to_string(),
-        Platform::Twitter.to_string()
+        "direct-messages.js"
     )
     .execute(&mut *tx)
     .await?;
