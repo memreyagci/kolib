@@ -1,10 +1,7 @@
 use std::path::Path;
 
 use crate::{
-    archive::{
-        model::Archive,
-        utils::{get_dir_content, get_pool_by_archive_path},
-    },
+    archive::{model::Archive, utils::get_pool_by_archive_path},
     consts::DATABASE_FILE_NAME,
     error::ArchiveError,
 };
@@ -12,10 +9,10 @@ use crate::{
 impl Archive {
     pub async fn open(folder_path: impl AsRef<Path>) -> Result<Self, ArchiveError> {
         let folder = folder_path.as_ref().to_path_buf();
-        let files = get_dir_content(folder_path.as_ref())?;
 
-        if !files.iter().any(|file| file == DATABASE_FILE_NAME) {
-            return Err(ArchiveError::InvalidArchive { reason: (None) });
+        let db_file_path = folder.join(DATABASE_FILE_NAME);
+        if !db_file_path.is_file() {
+            return Err(ArchiveError::InvalidArchive { reason: None });
         }
 
         let pool = get_pool_by_archive_path(&folder).await?;

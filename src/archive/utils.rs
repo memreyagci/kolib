@@ -9,19 +9,6 @@ use crate::{
     migrations::{DEPRECATED_MIGRATION_TABLA_NAME, MIGRATION_TABLE_NAME, Migration},
 };
 
-pub(crate) fn get_dir_content(folder_path: impl AsRef<Path>) -> Result<Vec<String>, ArchiveError> {
-    match fs::read_dir(folder_path) {
-        Err(e) => Err(ArchiveError::IoError(e)),
-        Ok(paths) => {
-            let mut files: Vec<String> = Vec::new();
-            for path in paths {
-                files.push(path?.file_name().display().to_string());
-            }
-            Ok(files)
-        }
-    }
-}
-
 pub(crate) fn is_dir_empty(folder_path: impl AsRef<Path>) -> Result<bool, ArchiveError> {
     Ok(fs::read_dir(folder_path)?.next().is_none())
 }
