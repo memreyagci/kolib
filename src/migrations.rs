@@ -15,9 +15,18 @@ const MIGRATIONS: &[(&str, &str, [u8; 32])] = &[
     (
         "0002__rust_rewrite.sql",
         include_str!("./migrations/0002__rust_rewrite.sql"),
-        hex!("3d37921934cb2e91e76cc1a7578cc310656d7573d84e5690862951dc439a50ac"),
+        hex!("a30926cb1846a1356bd6fff54b8829397de742d0b40431d09a4cb5db337973d8"),
     ),
 ];
+
+// TODO: Consider, at some point, removing migrations, and rebuilding off of raw
+// files. Since deletions, favorites, other_user_id, etc., will be in separate
+// tables, they would be able to be preserved. Only problem is custom id (UUIDs)
+// within datasets. Reconsider using account.id + dataset-specific identifier (which
+// can be one or more values provided by the platform export file). It will be
+// useful for inserting export file on top an existing dataset too, since UUID
+// won't be the identifier, but the platform-provided one(s) will be anyways.
+// TODO: Store raw files in db as blobs.
 
 #[derive(Debug)]
 pub struct Migration {

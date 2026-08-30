@@ -22,7 +22,7 @@ pub struct TwitterDMModel {
     pub(crate) sender_id: String,
     pub(crate) recipient_id: String,
     pub(crate) text: String,
-    pub(crate) created_at: i64,
+    pub(crate) created_at: String,
 }
 
 #[derive(sqlx::FromRow, Debug)]
@@ -31,7 +31,7 @@ pub struct TwitterDMReactionsModel {
     pub(crate) event_id: String,
     pub(crate) sender_id: String,
     pub(crate) reaction_key: String,
-    pub(crate) created_at: i64,
+    pub(crate) created_at: String,
 }
 
 #[derive(sqlx::FromRow, Debug)]
@@ -44,10 +44,10 @@ pub struct TwitterDMEditHistoryModel {
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TwitterDMAttachmentsModel {
-    pub(crate) id: String,
     pub(crate) main_id: String,
-    pub(crate) external: u8,
-    pub(crate) target: String,
+    pub(crate) ordinal: i64,
+    pub(crate) source_kind: String,
+    pub(crate) source: String,
 }
 
 #[derive(Debug)]
@@ -84,7 +84,7 @@ pub(crate) fn get_rows(
                 sender_id: message.message_create.sender_id,
                 recipient_id: message.message_create.recipient_id,
                 text: message.message_create.text,
-                created_at: date_to_unix_time_stamp(&message.message_create.created_at)?,
+                created_at: message.message_create.created_at,
             });
 
             for reaction in message.message_create.reactions {
@@ -93,7 +93,7 @@ pub(crate) fn get_rows(
                     event_id: reaction.event_id,
                     sender_id: reaction.sender_id,
                     reaction_key: reaction.reaction_key,
-                    created_at: date_to_unix_time_stamp(&reaction.created_at)?,
+                    created_at: reaction.created_at,
                 });
             }
 
@@ -108,7 +108,8 @@ pub(crate) fn get_rows(
                 }
             }
 
-            // TODO: Consider having URLs and attachments as 2 different tables.
+            let mut message_attachments: Vec<(&str, String)> = Vec::new();
+
             for url in message.message_create.urls {
                 // If "urls.expanded" starts with "https://twitter.com/messages/media/",
                 // that indicates it is a media attachment that can be found in direct_messages_media/
@@ -147,22 +148,20 @@ pub(crate) fn get_rows(
                         let media_file_name =
                             format!("{}-{}", message.message_create.id, last_path);
 
-                        dm_attachments.push(TwitterDMAttachmentsModel {
-                            id: Uuid::now_v7().to_string(),
-                            main_id: message_id.to_owned(),
-                            external: 0,
-                            target: media_file_name,
-                        });
+                        message_attachments.push(("file", media_file_name));
                     }
                 } else {
-                    dm_attachments.push(TwitterDMAttachmentsModel {
-                        id: Uuid::now_v7().to_string(),
-                        main_id: message_id.to_owned(),
-                        external: 1,
-                        target: url.expanded,
-                    });
+                    message_attachments.push(("url", url.expanded));
                 }
             }
+            dm_attachments.extend(message_attachments.into_iter().enumerate().map(
+                |(ordinal, (source_kind, source))| TwitterDMAttachmentsModel {
+                    main_id: message_id.clone(),
+                    ordinal: ordinal as i64,
+                    source_kind: source_kind.to_string(),
+                    source,
+                },
+            ));
         }
     }
 
@@ -175,7 +174,7 @@ pub(crate) fn get_rows(
 }
 
 fn date_to_unix_time_stamp(date: &str) -> Result<i64, chrono::ParseError> {
-    Ok(DateTime::parse_from_rfc3339(&date).map(|dt| dt.timestamp())?)
+    DateTime::parse_from_rfc3339(date).map(|dt| dt.timestamp_millis())
 }
 
 /// Removes the JavaScript variable declaration in .js files Twitter/X exports.

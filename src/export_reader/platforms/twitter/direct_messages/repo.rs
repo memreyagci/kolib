@@ -75,11 +75,11 @@ pub async fn import(
         for attachment in to_import
             .attachments
             .iter()
-            .filter(|attachment| attachment.external == 0)
+            .filter(|attachment| attachment.source_kind == "file")
         {
             let _ = fs::copy(
-                dm_media_dir.join(&attachment.target),
-                &tmp_tw_dm_dir.join("media").join(&attachment.target),
+                dm_media_dir.join(&attachment.source),
+                tmp_tw_dm_dir.join("media").join(&attachment.source),
             );
         }
     }
@@ -145,21 +145,17 @@ pub async fn import(
         .await?;
     }
 
-    let mut attachment_file_names: Vec<&str> = Vec::new();
     for attachment in &to_import.attachments {
-        if attachment.external == 0 {
-            attachment_file_names.push(&attachment.target);
-        }
-
         sqlx::query!(
             "
-                INSERT INTO twitter_dm_attachments
-                (id, main_id, external, target)
-                VALUES (?, ?, ?, ?)",
-            &attachment.id,
+          INSERT INTO twitter_dm_attachments
+              (main_id, ordinal, source_kind, source)
+          VALUES (?, ?, ?, ?)
+          ",
             &attachment.main_id,
-            &attachment.external,
-            &attachment.target
+            &attachment.ordinal,
+            &attachment.source_kind,
+            &attachment.source
         )
         .execute(&mut *tx)
         .await?;
