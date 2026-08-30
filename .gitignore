@@ -1,3 +1,9 @@
 /target
 .env
-test.db
+*.db
+*.sqlite
+.DS_Store
+.harper-dictionary.txt
+.cargo
+dev_notes/
+repo/
