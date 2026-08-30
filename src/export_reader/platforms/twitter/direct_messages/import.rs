@@ -8,7 +8,10 @@ use crate::{
     error::ExportReaderError,
     export_reader::{
         account::models::Account,
-        platforms::twitter::direct_messages::models::{TwitterDMRows, get_rows},
+        platforms::twitter::direct_messages::{
+            FILE_NAME,
+            models::{TwitterDMRows, get_rows},
+        },
     },
     types::Platform,
 };
@@ -39,7 +42,7 @@ pub async fn import(
         .to_string_lossy()
         .to_string();
 
-    if filename != "direct-message.js" {
+    if filename != FILE_NAME {
         return Err(ExportReaderError::InvalidFilename {
             imported_filename: filename,
             importer_name: String::from("twitter::direct_messages::import"),
@@ -91,7 +94,7 @@ pub async fn import(
             (account_id, dataset_type)
             VALUES (?, ?)",
         account.id().to_string(),
-        "direct-messages.js"
+        FILE_NAME
     )
     .execute(&mut *tx)
     .await?;

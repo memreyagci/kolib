@@ -1,4 +1,4 @@
-//! Schema of "direct-message.js" file.
+//! Schema of "direct-messages.js" file.
 //! Created using quicktype: https://quicktype.io/
 //! and modifications made as needed.
 
