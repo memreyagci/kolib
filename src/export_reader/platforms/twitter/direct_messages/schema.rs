@@ -46,7 +46,8 @@ pub struct MessageCreate {
 
     pub created_at: String,
 
-    pub edit_history: Option<Vec<EditHistory>>,
+    #[serde(default)]
+    pub edit_history: Vec<EditHistory>,
 
     // "edited: Option<bool>" is unnecessary, as its appearance is inconsistent, and edit_history already
     // gives the info on whether the message is edited and more.

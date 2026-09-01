@@ -97,15 +97,13 @@ pub(crate) fn get_rows(
                 });
             }
 
-            if let Some(edit_history) = message.message_create.edit_history {
-                for (ordinal, edit) in edit_history.into_iter().enumerate() {
-                    dm_edit_history.push(TwitterDMEditHistoryModel {
-                        main_id: message_id.to_owned(),
-                        ordinal: ordinal as i64,
-                        edited_text: edit.edited_text,
-                        created_at_sec: edit.created_at_sec,
-                    });
-                }
+            for (ordinal, edit) in message.message_create.edit_history.into_iter().enumerate() {
+                dm_edit_history.push(TwitterDMEditHistoryModel {
+                    main_id: message_id.to_owned(),
+                    ordinal: ordinal as i64,
+                    edited_text: edit.edited_text,
+                    created_at_sec: edit.created_at_sec,
+                });
             }
 
             let mut message_attachments: Vec<(&str, String)> = Vec::new();
