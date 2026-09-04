@@ -5,8 +5,6 @@ use kolib::{
 
 use crate::common::{create_account_in_temp_dir, twitter_dm_fixture};
 
-mod common;
-
 #[tokio::test]
 async fn imports_comprehensive_export() {
     // TODO: Also verify that:
