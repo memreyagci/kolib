@@ -1,21 +1,17 @@
-use std::collections::HashMap;
-
 use crate::{
-    archive::model::Archive,
-    error::ExportReaderError,
-    export_reader::{
-        account::models::Account,
-        platforms::twitter::direct_messages::models::{
-            TwitterDMAttachmentsModel, TwitterDMEditHistoryModel, TwitterDMModel,
-            TwitterDMReactionsModel,
-        },
-    },
+    archive::model::Archive, error::ExportReaderError, export_reader::account::models::Account,
 };
 
-#[derive(Debug, Clone)]
+use serde_with::serde_as;
+use sqlx::types::Json;
+
+#[serde_as]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct Reaction {
     event_id: String,
     sender_id: String,
+
+    #[serde_as(as = "serde_with::DisplayFromStr")]
     reaction_key: ReactionKey,
     created_at: String,
 }
@@ -47,19 +43,30 @@ pub enum ReactionKey {
     Unknown(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct Edit {
     edited_text: String,
     created_at_sec: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct Attachment {
     source_kind: AttachmentSourceKind,
     source: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display, strum::AsRefStr)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    serde::Deserialize,
+    strum::EnumString,
+    strum::Display,
+    strum::AsRefStr,
+)]
+#[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum AttachmentSourceKind {
     Url,
@@ -162,154 +169,92 @@ pub async fn get_messages_by_conversation(
 ) -> Result<Vec<DirectMessage>, ExportReaderError> {
     let account_id = account.id().to_string();
 
-    let dm_main = sqlx::query_as!(
-        TwitterDMModel,
+    let rows = sqlx::query!(
         r#"
-      SELECT
-          id,
-          account_id,
-          other_user_id,
-          conversation_id,
-          message_create_id,
+  SELECT
+    message.message_create_id AS "id!",
+    message.conversation_id,
+    message.sender_id,
+    message.recipient_id,
+    message.text AS "text!",
+    message.created_at,
+    (
+      SELECT json_group_array(
+        json_object(
+          'event_id', reaction.event_id,
+          'sender_id', reaction.sender_id,
+          'reaction_key', reaction.reaction_key,
+          'created_at', reaction.created_at
+        )
+      )
+      FROM (
+        SELECT
+          event_id,
           sender_id,
-          recipient_id,
-          text AS "text!",
+          reaction_key,
           created_at
-      FROM twitter_direct_messages
-        WHERE account_id = ?
-        AND conversation_id = ?
-      ORDER BY created_at, message_create_id
-      "#,
+        FROM twitter_dm_reactions
+        WHERE main_id = message.id
+        ORDER BY created_at, event_id
+      ) AS reaction
+    ) AS "reactions!: Json<Vec<Reaction>>",
+    (
+      SELECT json_group_array(
+        json_object(
+          'edited_text', edit.edited_text,
+          'created_at_sec', edit.created_at_sec
+        )
+      )
+      FROM (
+        SELECT
+          edited_text,
+          created_at_sec
+        FROM twitter_dm_edit_history
+        WHERE main_id = message.id
+        ORDER BY ordinal
+      ) AS edit
+    ) AS "edit_history!: Json<Vec<Edit>>",
+    (
+      SELECT json_group_array(
+        json_object(
+          'source_kind', attachment.source_kind,
+          'source', attachment.source
+        )
+      )
+      FROM (
+        SELECT
+          source_kind,
+          source
+        FROM twitter_dm_attachments
+        WHERE main_id = message.id
+        ORDER BY ordinal
+      ) AS attachment
+    ) AS "attachments!: Json<Vec<Attachment>>"
+  FROM twitter_direct_messages AS message
+  WHERE message.account_id = ?
+    AND message.conversation_id = ?
+  ORDER BY message.created_at, message.message_create_id
+  "#,
         account_id,
         conversation_id
     )
     .fetch_all(archive.pool())
     .await?;
 
-    let dm_attachments = sqlx::query_as!(
-        TwitterDMAttachmentsModel,
-        r#"
-      SELECT
-          attachment.main_id,
-          attachment.ordinal,
-          attachment.source_kind,
-          attachment.source
-      FROM twitter_dm_attachments AS attachment
-      INNER JOIN twitter_direct_messages AS message
-          ON message.id = attachment.main_id
-      WHERE message.account_id = ?
-        AND message.conversation_id = ?
-      ORDER BY attachment.main_id, attachment.ordinal
-      "#,
-        account_id,
-        conversation_id
-    )
-    .fetch_all(archive.pool())
-    .await?;
-
-    let dm_reactions = sqlx::query_as!(
-        TwitterDMReactionsModel,
-        r#"
-      SELECT
-          reaction.main_id,
-          reaction.event_id,
-          reaction.sender_id,
-          reaction.reaction_key,
-          reaction.created_at
-      FROM twitter_dm_reactions AS reaction
-      INNER JOIN twitter_direct_messages AS message
-          ON message.id = reaction.main_id
-      WHERE message.account_id = ?
-        AND message.conversation_id = ?
-      ORDER BY reaction.main_id, reaction.created_at
-      "#,
-        account_id,
-        conversation_id
-    )
-    .fetch_all(archive.pool())
-    .await?;
-
-    let dm_edit_history = sqlx::query_as!(
-        TwitterDMEditHistoryModel,
-        r#"
-      SELECT
-          edit.main_id,
-          edit.ordinal,
-          edit.edited_text,
-          edit.created_at_sec
-      FROM twitter_dm_edit_history AS edit
-      INNER JOIN twitter_direct_messages AS message
-          ON message.id = edit.main_id
-      WHERE message.account_id = ?
-        AND message.conversation_id = ?
-      ORDER BY edit.main_id, edit.ordinal
-      "#,
-        account_id,
-        conversation_id
-    )
-    .fetch_all(archive.pool())
-    .await?;
-
-    let mut attachments_by_message: HashMap<String, Vec<Attachment>> = HashMap::new();
-
-    for attachment in dm_attachments {
-        let source_kind = attachment.source_kind.parse()?;
-
-        attachments_by_message
-            .entry(attachment.main_id)
-            .or_default()
-            .push(Attachment {
-                source_kind,
-                source: attachment.source,
-            });
-    }
-
-    let mut reactions_by_message: HashMap<String, Vec<Reaction>> = HashMap::new();
-
-    for reaction in dm_reactions {
-        reactions_by_message
-            .entry(reaction.main_id)
-            .or_default()
-            .push(Reaction {
-                event_id: reaction.event_id,
-                sender_id: reaction.sender_id,
-                reaction_key: ReactionKey::from(reaction.reaction_key.as_str()),
-                created_at: reaction.created_at,
-            });
-    }
-
-    let mut edits_by_message: HashMap<String, Vec<Edit>> = HashMap::new();
-
-    for edit in dm_edit_history {
-        edits_by_message
-            .entry(edit.main_id)
-            .or_default()
-            .push(Edit {
-                edited_text: edit.edited_text,
-                created_at_sec: edit.created_at_sec,
-            });
-    }
-    let mut direct_messages: Vec<DirectMessage> = Vec::with_capacity(dm_main.len());
-
-    for message in dm_main {
-        let internal_id = message.id;
-
-        direct_messages.push(DirectMessage {
-            id: message.message_create_id,
-            conversation_id: message.conversation_id,
-            sender_id: message.sender_id,
-            recipient_id: message.recipient_id,
-            text: message.text,
-            created_at: message.created_at,
-            attachments: attachments_by_message
-                .remove(&internal_id)
-                .unwrap_or_default(),
-            reactions: reactions_by_message
-                .remove(&internal_id)
-                .unwrap_or_default(),
-            edit_history: edits_by_message.remove(&internal_id).unwrap_or_default(),
-        });
-    }
+    let direct_messages = rows
+        .into_iter()
+        .map(|row| DirectMessage {
+            id: row.id,
+            conversation_id: row.conversation_id,
+            sender_id: row.sender_id,
+            recipient_id: row.recipient_id,
+            text: row.text,
+            created_at: row.created_at,
+            reactions: row.reactions.0,
+            edit_history: row.edit_history.0,
+            attachments: row.attachments.0,
+        })
+        .collect();
 
     Ok(direct_messages)
 }
