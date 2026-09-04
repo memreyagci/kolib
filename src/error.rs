@@ -75,6 +75,9 @@ pub enum ExportReaderError {
 
     #[error("url related error occurred")]
     UrlError(#[from] url::ParseError),
+
+    #[error(transparent)]
+    Twitter(#[from] TwitterError),
 }
 
 #[derive(Error, Debug)]
@@ -116,4 +119,13 @@ pub enum MigrationError {
         "kolib checks for __drizzle_migrations and kolib_migrations table to determine the version, and neither of them found."
     )]
     MigrationTableNotFound,
+}
+
+#[derive(Debug, Error)]
+pub enum TwitterError {
+    #[error("conversation `{conversation_id}` was not found for account `{account_id}`")]
+    ConversationNotFound {
+        account_id: String,
+        conversation_id: String,
+    },
 }

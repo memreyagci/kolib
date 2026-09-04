@@ -1,5 +1,7 @@
 use crate::{
-    archive::model::Archive, error::ExportReaderError, export_reader::account::models::Account,
+    archive::model::Archive,
+    error::{ExportReaderError, TwitterError},
+    export_reader::account::models::Account,
 };
 
 use serde_with::serde_as;
@@ -240,6 +242,14 @@ pub async fn get_messages_by_conversation(
     )
     .fetch_all(archive.pool())
     .await?;
+
+    if rows.is_empty() {
+        return Err(TwitterError::ConversationNotFound {
+            account_id,
+            conversation_id: conversation_id.to_owned(),
+        }
+        .into());
+    }
 
     let direct_messages = rows
         .into_iter()
