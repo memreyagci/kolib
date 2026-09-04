@@ -13,9 +13,6 @@ pub enum ArchiveError {
     #[error("Directory is not empty")]
     DirNotEmpty,
 
-    #[error("serde_json related error occurred")]
-    SerdeError(#[from] serde_json::Error),
-
     #[error("sqlx related error occurred")]
     SqlxError(#[from] sqlx::Error),
 
@@ -36,6 +33,9 @@ pub enum ArchiveError {
 pub enum ExportReaderError {
     #[error("{export_file_path} is not found.")]
     ExportFileNotFound { export_file_path: String },
+
+    #[error("invalid enum value")]
+    StrumError(#[from] strum::ParseError),
 
     #[error("I/O error occurred")]
     IoError(#[from] io::Error),
@@ -64,7 +64,7 @@ pub enum ExportReaderError {
     #[error("regex related error occurred")]
     RegexError(#[from] regex::Error),
 
-    #[error("serde related error occurred")]
+    #[error("failed to deserialize export: {0}")]
     SerdeError(#[from] serde_json::Error),
 
     #[error("chrono related error occurred")]
