@@ -77,33 +77,6 @@ pub struct Reaction {
     pub created_at: String,
 }
 
-// TODO: Consider finding a way to convert keywords to emojis without needing to run to_string() function
-#[derive(Debug, Clone, Serialize, Deserialize, strum::Display)]
-#[serde(rename_all = "snake_case")]
-pub enum ReactionKey {
-    #[strum(to_string = "👍")]
-    Agree,
-
-    #[strum(to_string = "👎")]
-    Disagree,
-
-    // Some "reaction_key"s are represented with "emoji" keyword, so it is not possible to know
-    // which emoji was actually sent.
-    Emoji,
-
-    #[strum(to_string = "😂")]
-    Funny,
-
-    #[strum(to_string = "❤️")]
-    Like,
-
-    #[strum(to_string = "😔")]
-    Sad,
-
-    #[strum(to_string = "😮")]
-    Surprised,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Url {
     pub expanded: String,
