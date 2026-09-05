@@ -68,8 +68,8 @@ impl Migration {
 
             if calculated_hash.as_slice() != hash {
                 return Err(MigrationError::MigrationFileHashMismatch {
-                    expected_hash: hex::encode(calculated_hash),
-                    actual_hash: hex::encode(hash),
+                    expected_hash: hex::encode(hash),
+                    actual_hash: hex::encode(calculated_hash),
                 });
             }
 
