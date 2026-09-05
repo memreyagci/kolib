@@ -46,6 +46,24 @@ async fn creates_account() {
 }
 
 #[tokio::test]
+async fn rejects_invalid_names_when_creating_account() {
+    let (_guard, _, archive) = create_archive_in_temp_dir().await;
+
+    for invalid_name in ["", " ", "\t\n"] {
+        let result = Account::create(&archive, invalid_name, Platform::Twitter).await;
+        assert!(
+            matches!(&result, Err(AccountError::InvalidName)),
+            "unexpected result: {result:?}"
+        );
+    }
+
+    let accounts = Account::get_all(archive.pool())
+        .await
+        .expect("getting accounts after rejected creation attempts should succeed");
+    assert!(accounts.is_empty());
+}
+
+#[tokio::test]
 async fn gets_account_by_id() {
     let (_guard, _, archive, account) = create_account_in_temp_dir(Platform::Twitter).await;
 
@@ -76,6 +94,27 @@ async fn renames_account() {
         .expect("getting the renamed account should succeed");
 
     assert_eq!(fetched.name(), "renamed");
+}
+
+#[tokio::test]
+async fn rejects_invalid_names_when_renaming_account() {
+    let (_guard, _, archive, mut account) = create_account_in_temp_dir(Platform::Twitter).await;
+    let account_id = account.id().clone();
+
+    for invalid_name in ["", " ", "\t\n"] {
+        let result = account.rename(archive.pool(), invalid_name).await;
+
+        assert!(
+            matches!(&result, Err(AccountError::InvalidName)),
+            "unexpected result: {result:?}"
+        );
+        assert_eq!(account.name(), "test");
+    }
+
+    let fetched = Account::get_by_id(archive.pool(), &account_id)
+        .await
+        .expect("getting the account after rejected rename attempts should succeed");
+    assert_eq!(fetched.name(), "test");
 }
 
 #[tokio::test]
