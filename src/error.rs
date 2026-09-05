@@ -22,13 +22,13 @@ pub enum ArchiveError {
 
 #[derive(Error, Debug)]
 pub enum ExportReaderError {
-    #[error("{export_file_path} is not found.")]
+    #[error("Invalid export path: {export_file_path}")]
     InvalidExportPath { export_file_path: String },
 
     #[error("I/O error: {0}")]
     Io(#[from] io::Error),
 
-    #[error("{expected} file is not supported by {actual}")]
+    #[error("expected export filename `{expected}`, got `{actual}`")]
     UnexpectedFilename { expected: String, actual: String },
 
     #[error("Account and importer platform doesn't match: {acc_platform} & {importer_platform}")]
