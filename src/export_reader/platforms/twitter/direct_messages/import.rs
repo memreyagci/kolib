@@ -168,7 +168,8 @@ pub async fn import(
         archive
             .folder()
             .join("accounts")
-            .join(account.id().to_string()),
+            .join(account.id().to_string())
+            .join("twitter-direct-messages"),
     )?;
 
     tx.commit().await?;
