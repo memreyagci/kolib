@@ -129,4 +129,22 @@ async fn rolls_back_import_with_duplicate_message_ids() {
         "failed import unexpectedly left {} dataset(s) behind",
         datasets.len()
     );
+
+    let (messages, reactions, edits, attachments) = sqlx::query_as::<_, (i64, i64, i64, i64)>(
+        r#"
+            SELECT
+                (SELECT COUNT(*) FROM twitter_direct_messages),
+                (SELECT COUNT(*) FROM twitter_dm_reactions),
+                (SELECT COUNT(*) FROM twitter_dm_edit_history),
+                (SELECT COUNT(*) FROM twitter_dm_attachments)
+            "#,
+    )
+    .fetch_one(archive.pool())
+    .await
+    .expect("counting rows after the failed import should succeed");
+
+    assert_eq!(messages, 0);
+    assert_eq!(reactions, 0);
+    assert_eq!(edits, 0);
+    assert_eq!(attachments, 0);
 }
