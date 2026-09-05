@@ -13,7 +13,7 @@ use kolib::{
 
 use crate::utils::{copy_fixture_to_temp, migration_versions, twitter_dm_row_counts};
 
-const ACCOUNT_ID: &str = "01a071da-f2bb-74ee-9734-8b795190756b";
+const ACCOUNT_ID: &str = "01a072e0-a4d6-744c-a632-39857ae991ff";
 const COMPREHENSIVE_MESSAGE_CONVERSATION_ID: &str = "1234567891234567890-5555555555555555555";
 const FIXTURE_RELATIVE_PATH: &str = "archives/v1";
 
@@ -168,8 +168,40 @@ async fn migrates_v1_archive_to_latest() {
         .await
         .expect("the migrated account's datasets should remain readable");
     assert_eq!(datasets.len(), 1);
-    assert_eq!(datasets[0].account_id(), &account_id);
+    assert_eq!(datasets[0].account_id(), account.id());
     assert_eq!(datasets[0].dataset_type(), "direct-messages.js");
+
+    let migrated_dataset_path = archive
+        .folder()
+        .join("accounts")
+        .join(account.id().to_string())
+        .join("twitter-direct-messages");
+    assert!(
+        migrated_dataset_path
+            .join("raw")
+            .join("direct-messages.js")
+            .is_file()
+    );
+
+    let migrated_media_path = migrated_dataset_path.join("media");
+    for filename in [
+        "1111111111111111111-abc12D--efghIJklmN3-OPRsTU4vy5ZZ6_aBcDeFHIj7klMNo-.mp4",
+        "8000000000000000008-everything-test-video.mp4",
+        "9000000000000000009-ImageToken.jpg",
+        "9100000000000000010-VideoToken.mp4",
+    ] {
+        assert!(
+            migrated_media_path.join(filename).is_file(),
+            "expected media file `{filename}` to survive migration"
+        );
+    }
+
+    assert!(
+        !migrated_media_path
+            .join("9200000000000000011-IntentionallyMissingMedia.mp4")
+            .exists(),
+        "intentionally missing media file was unexpectedly created during migration"
+    );
 
     let conversations = get_conversations_by_account(&archive, &account)
         .await
