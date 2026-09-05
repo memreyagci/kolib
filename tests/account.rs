@@ -77,6 +77,33 @@ async fn gets_account_by_id() {
 }
 
 #[tokio::test]
+async fn gets_all_accounts() {
+    let (_guard, _, archive) = create_archive_in_temp_dir().await;
+    let first = Account::create(&archive, "first", Platform::Twitter)
+        .await
+        .expect("creating the first account should succeed");
+    let second = Account::create(&archive, "second", Platform::Twitter)
+        .await
+        .expect("creating the second account should succeed");
+
+    let accounts = Account::get_all(archive.pool())
+        .await
+        .expect("getting all accounts should succeed");
+
+    assert_eq!(accounts.len(), 2);
+
+    for expected in [&first, &second] {
+        let fetched = accounts
+            .iter()
+            .find(|account| account.id() == expected.id())
+            .expect("created account should be returned");
+
+        assert_eq!(fetched.name(), expected.name());
+        assert_eq!(fetched.platform(), expected.platform());
+    }
+}
+
+#[tokio::test]
 async fn renames_account() {
     let (_guard, _, archive, mut account) = create_account_in_temp_dir(Platform::Twitter).await;
     let account_id = account.id().clone();
