@@ -71,7 +71,7 @@ pub async fn import(
     // them from accessing their export files. Getter functions should
     // return a none value, and end-user apps should indicate a missing
     // file within the messages accordingly
-    let export_file_dir = &file_path.as_ref().parent();
+    let export_file_dir = &file_path.parent();
     if let Some(efd) = export_file_dir {
         let dm_media_dir = efd.join("direct_messages_media");
 
