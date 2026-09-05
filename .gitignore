@@ -1,6 +1,7 @@
 /target
 .env
 *.db
+!tests/fixtures/archives/**/koli.db
 *.sqlite
 .DS_Store
 .harper-dictionary.txt
