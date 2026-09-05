@@ -59,16 +59,15 @@ impl Account {
 
     /// Returns an Account instance by its id, which is the unique identifier.
     pub async fn get_by_id(pool: &SqlitePool, id: &AccountId) -> Result<Self, AccountError> {
-        // TODO: Make errors more verbose, e.g "account with ID: {id} doesn't exist"
+        let account_id = id.to_string();
+
         let account = sqlx::query!(
             "SELECT id, name, platform FROM accounts WHERE id = ?;",
-            id.to_string()
+            &account_id
         )
         .fetch_optional(pool)
         .await?
-        .ok_or(AccountError::NotFound {
-            account_id: id.to_string(),
-        })?;
+        .ok_or(AccountError::NotFound { account_id })?;
 
         Ok(Self::new(
             AccountId::from_str(&account.id)?,
