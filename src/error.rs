@@ -4,19 +4,19 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ArchiveError {
-    #[error("I/O error occurred")]
+    #[error("I/O error: {0}")]
     IoError(#[from] io::Error),
 
     #[error("Directory is not empty")]
     DirNotEmpty,
 
-    #[error("sqlx related error occurred")]
+    #[error("database error: {0}")]
     SqlxError(#[from] sqlx::Error),
 
     #[error("koli.db is not found")]
     InvalidArchive { reason: Option<String> },
 
-    #[error("Migration error occured")]
+    #[error(transparent)]
     MigrationError(#[from] MigrationError),
 }
 
@@ -25,7 +25,7 @@ pub enum ExportReaderError {
     #[error("{export_file_path} is not found.")]
     ExportFileNotFound { export_file_path: String },
 
-    #[error("I/O error occurred")]
+    #[error("I/O error: {0}")]
     IoError(#[from] io::Error),
 
     #[error("{imported_filename} file is not supported by {importer_name}")]
@@ -40,10 +40,10 @@ pub enum ExportReaderError {
         importer_platform: String,
     },
 
-    #[error("sqlx related error occurred")]
+    #[error("database error: {0}")]
     SqlxError(#[from] sqlx::Error),
 
-    #[error("regex related error occurred")]
+    #[error("regex error: {0}")]
     RegexError(#[from] regex::Error),
 
     #[error("failed to deserialize export: {0}")]
@@ -52,7 +52,7 @@ pub enum ExportReaderError {
     #[error("media path could not be parsed")]
     MediaPathParseError,
 
-    #[error("url related error occurred")]
+    #[error("url error: {0}")]
     UrlError(#[from] url::ParseError),
 
     #[error(transparent)]
@@ -64,7 +64,7 @@ pub enum AccountError {
     #[error("Account name cannot be empty or contain only whitespace.")]
     InvalidName,
 
-    #[error("sqlx error occured.")]
+    #[error("database error: {0}")]
     SqlxError(#[from] sqlx::Error),
 
     #[error("uuid error occured.")]
@@ -73,7 +73,7 @@ pub enum AccountError {
     #[error("strum error occured.")]
     StrumError(#[from] strum::ParseError),
 
-    #[error("I/O error occurred")]
+    #[error("I/O error: {0}")]
     IoError(#[from] io::Error),
 }
 
