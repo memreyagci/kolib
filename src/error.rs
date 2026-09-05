@@ -58,6 +58,9 @@ pub enum ExportReaderError {
 
 #[derive(Error, Debug)]
 pub enum AccountError {
+    #[error("account `{account_id}` was not found")]
+    NotFound { account_id: String },
+
     #[error("Account name cannot be empty or contain only whitespace.")]
     InvalidName,
 

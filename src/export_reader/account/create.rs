@@ -42,8 +42,6 @@ impl Account {
 
 #[cfg(test)]
 mod tests {
-    use sqlx::Error::RowNotFound;
-
     use crate::{
         error::AccountError, export_reader::account::models::Account,
         test_helpers::init_archive_in_temp_dir, types::Platform,
@@ -65,7 +63,8 @@ mod tests {
         // After deletion, we should not be able to fetch the deleted Account by id.
         assert!(matches!(
             Account::get_by_id(archive.pool(), &acc_id).await,
-            Err(AccountError::Sqlx(RowNotFound))
+            Err(AccountError::NotFound { account_id })
+                if account_id == acc_id.to_string()
         ));
     }
 }

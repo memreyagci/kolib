@@ -19,14 +19,19 @@ impl Account {
     ) -> Result<Self, AccountError> {
         Self::validate_name(new_name)?;
 
-        // TODO: Make errors more verbose, e.g "account with ID: {id} doesn't exist"
-        let _ = sqlx::query!(
+        let account_id = account.id().to_string();
+
+        let result = sqlx::query!(
             "UPDATE accounts SET name = ? WHERE id = ?",
             new_name,
-            account.id().to_string()
+            &account_id
         )
         .execute(pool)
         .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(AccountError::NotFound { account_id });
+        }
 
         Ok(Account::new(
             account.id().clone(),
@@ -38,9 +43,16 @@ impl Account {
     pub async fn delete(self, archive: &Archive) -> Result<(), AccountError> {
         // TODO: make sure doing so also deletes all related fields from account_datasets and platform
         // file-related tables
-        let _ = sqlx::query!("DELETE FROM accounts WHERE id = ?", self.id().to_string())
+
+        let account_id = self.id().to_string();
+
+        let result = sqlx::query!("DELETE FROM accounts WHERE id = ?", &account_id)
             .execute(archive.pool())
             .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(AccountError::NotFound { account_id });
+        }
 
         Ok(())
     }
@@ -52,8 +64,11 @@ impl Account {
             "SELECT id, name, platform FROM accounts WHERE id = ?;",
             id.to_string()
         )
-        .fetch_one(pool)
-        .await?;
+        .fetch_optional(pool)
+        .await?
+        .ok_or(AccountError::NotFound {
+            account_id: id.to_string(),
+        })?;
 
         Ok(Self::new(
             AccountId::from_str(&account.id)?,
