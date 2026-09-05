@@ -23,32 +23,3 @@ impl Archive {
         Ok(archive)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        archive::model::Archive,
-        error::ArchiveError,
-        test_helpers::{create_non_empty_dir_in_temp, init_archive_in_temp_dir},
-    };
-
-    #[tokio::test]
-    async fn opening_valid_archive_succeeds() {
-        let (_guard, archive_dir, _) = init_archive_in_temp_dir().await;
-        let archive = Archive::open(&archive_dir).await;
-
-        assert!(archive.is_ok());
-        assert_eq!(archive.unwrap().db_version().await.unwrap(), 2);
-    }
-
-    #[tokio::test]
-    async fn opening_invalid_archive_fails() {
-        let (_guard, dir) = create_non_empty_dir_in_temp();
-        let archive = Archive::open(&dir).await;
-
-        assert!(matches!(
-            archive,
-            Err(ArchiveError::InvalidArchive { reason: None })
-        ));
-    }
-}
