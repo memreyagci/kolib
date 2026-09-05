@@ -5,19 +5,19 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ArchiveError {
     #[error("I/O error: {0}")]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
 
     #[error("Directory is not empty")]
     DirNotEmpty,
 
     #[error("database error: {0}")]
-    SqlxError(#[from] sqlx::Error),
+    Sqlx(#[from] sqlx::Error),
 
     #[error("koli.db is not found")]
     InvalidArchive { reason: Option<String> },
 
     #[error(transparent)]
-    MigrationError(#[from] MigrationError),
+    Migration(#[from] MigrationError),
 }
 
 #[derive(Error, Debug)]
@@ -26,7 +26,7 @@ pub enum ExportReaderError {
     ExportFileNotFound { export_file_path: String },
 
     #[error("I/O error: {0}")]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
 
     #[error("{imported_filename} file is not supported by {importer_name}")]
     InvalidFilename {
@@ -41,19 +41,19 @@ pub enum ExportReaderError {
     },
 
     #[error("database error: {0}")]
-    SqlxError(#[from] sqlx::Error),
+    Sqlx(#[from] sqlx::Error),
 
     #[error("regex error: {0}")]
-    RegexError(#[from] regex::Error),
+    Regex(#[from] regex::Error),
 
     #[error("failed to deserialize export: {0}")]
-    SerdeError(#[from] serde_json::Error),
+    Serde(#[from] serde_json::Error),
 
     #[error("media path could not be parsed")]
-    MediaPathParseError,
+    MediaPathParse,
 
     #[error("url error: {0}")]
-    UrlError(#[from] url::ParseError),
+    Url(#[from] url::ParseError),
 
     #[error(transparent)]
     Twitter(#[from] TwitterError),
@@ -65,28 +65,28 @@ pub enum AccountError {
     InvalidName,
 
     #[error("database error: {0}")]
-    SqlxError(#[from] sqlx::Error),
+    Sqlx(#[from] sqlx::Error),
 
     #[error("uuid error occured.")]
-    UuidError(#[from] uuid::Error),
+    Uuid(#[from] uuid::Error),
 
     #[error("strum error occured.")]
-    StrumError(#[from] strum::ParseError),
+    Strum(#[from] strum::ParseError),
 
     #[error("I/O error: {0}")]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
 }
 
 #[derive(Error, Debug)]
 pub enum MigrationError {
     #[error("Parse int error")]
-    ParseIntError(#[from] ParseIntError),
+    ParseInt(#[from] ParseIntError),
 
     #[error("Migration version could not be derived from {filename}")]
-    DeriveMigrationVersionError { filename: String },
+    DeriveMigrationVersion { filename: String },
 
     #[error("Migration title could not be derived from {filename}")]
-    DeriveMigrationTitleError { filename: String },
+    DeriveMigrationTitle { filename: String },
 
     #[error("Expected hash: {expected_hash:?}, actual hash of file: {actual_hash}")]
     MigrationFileHashMismatch {

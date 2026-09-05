@@ -47,11 +47,11 @@ impl Migration {
             let title: String = filename
                 .split("__")
                 .nth(1)
-                .ok_or(MigrationError::DeriveMigrationTitleError {
+                .ok_or(MigrationError::DeriveMigrationTitle {
                     filename: filename.to_string(),
                 })?
                 .strip_suffix(".sql")
-                .ok_or(MigrationError::DeriveMigrationTitleError {
+                .ok_or(MigrationError::DeriveMigrationTitle {
                     filename: filename.to_string(),
                 })?
                 .to_string();
@@ -59,7 +59,7 @@ impl Migration {
             let ver: i64 = filename
                 .split("__")
                 .next()
-                .ok_or(MigrationError::DeriveMigrationVersionError {
+                .ok_or(MigrationError::DeriveMigrationVersion {
                     filename: filename.to_string(),
                 })?
                 .parse::<i64>()?;

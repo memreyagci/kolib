@@ -65,7 +65,7 @@ mod tests {
         // After deletion, we should not be able to fetch the deleted Account by id.
         assert!(matches!(
             Account::get_by_id(archive.pool(), &acc_id).await,
-            Err(AccountError::SqlxError(RowNotFound))
+            Err(AccountError::Sqlx(RowNotFound))
         ));
     }
 }

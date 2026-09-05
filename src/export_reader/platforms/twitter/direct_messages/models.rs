@@ -140,9 +140,9 @@ pub(crate) fn get_rows(
                         let media_url_parsed = url::Url::parse(&media_url)?;
                         let last_path = media_url_parsed
                             .path_segments()
-                            .ok_or(ExportReaderError::MediaPathParseError)?
+                            .ok_or(ExportReaderError::MediaPathParse)?
                             .next_back()
-                            .ok_or(ExportReaderError::MediaPathParseError)?;
+                            .ok_or(ExportReaderError::MediaPathParse)?;
                         let media_file_name =
                             format!("{}-{}", message.message_create.id, last_path);
 
