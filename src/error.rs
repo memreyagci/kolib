@@ -67,10 +67,10 @@ pub enum AccountError {
     #[error("database error: {0}")]
     Sqlx(#[from] sqlx::Error),
 
-    #[error("uuid error occured.")]
+    #[error("uuid error: {0}")]
     Uuid(#[from] uuid::Error),
 
-    #[error("strum error occured.")]
+    #[error("strum error: {0}")]
     Strum(#[from] strum::ParseError),
 
     #[error("I/O error: {0}")]
@@ -79,7 +79,7 @@ pub enum AccountError {
 
 #[derive(Error, Debug)]
 pub enum MigrationError {
-    #[error("Parse int error")]
+    #[error("parse int error: {0}")]
     ParseInt(#[from] ParseIntError),
 
     #[error("Migration version could not be derived from {filename}")]

@@ -35,7 +35,7 @@ async fn rejects_invalid_json() {
     let result = import(&archive, &account, twitter_dm_fixture("invalid_json")).await;
 
     assert!(
-        matches!(result, Err(ExportReaderError::SerdeError(_))),
+        matches!(result, Err(ExportReaderError::Serde(_))),
         "unexpected result: {result:?}"
     );
 }
@@ -52,7 +52,7 @@ async fn rejects_missing_required_fields() {
     .await;
 
     assert!(
-        matches!(result, Err(ExportReaderError::SerdeError(_))),
+        matches!(result, Err(ExportReaderError::Serde(_))),
         "unexpected result: {result:?}"
     );
 }
@@ -77,7 +77,7 @@ async fn rolls_back_import_with_duplicate_message_ids() {
     let result = import(&archive, &account, twitter_dm_fixture("duplicate_ids")).await;
 
     assert!(
-        matches!(result, Err(ExportReaderError::SqlxError(_))),
+        matches!(result, Err(ExportReaderError::Sqlx(_))),
         "unexpected result: {result:?}"
     );
 
