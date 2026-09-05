@@ -60,6 +60,10 @@ impl Account {
         &self.platform
     }
 
+    pub(super) fn set_name(&mut self, name: String) {
+        self.name = name;
+    }
+
     pub(crate) fn validate_name(name: &str) -> Result<(), AccountError> {
         if name.trim().is_empty() {
             return Err(AccountError::InvalidName);

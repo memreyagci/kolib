@@ -12,14 +12,10 @@ use crate::{
 impl Account {
     /// Takes the Account model (consumes it, thus users won't end up continuing to have the
     /// pre-rename instance) and returns the renamed one.
-    pub async fn rename(
-        pool: &SqlitePool,
-        account: Self,
-        new_name: &str,
-    ) -> Result<Self, AccountError> {
+    pub async fn rename(&mut self, pool: &SqlitePool, new_name: &str) -> Result<(), AccountError> {
         Self::validate_name(new_name)?;
 
-        let account_id = account.id().to_string();
+        let account_id = self.id().to_string();
 
         let result = sqlx::query!(
             "UPDATE accounts SET name = ? WHERE id = ?",
@@ -33,11 +29,9 @@ impl Account {
             return Err(AccountError::NotFound { account_id });
         }
 
-        Ok(Account::new(
-            account.id().clone(),
-            new_name.to_owned(),
-            account.platform().to_owned(),
-        ))
+        self.set_name(new_name.to_owned());
+
+        Ok(())
     }
 
     pub async fn delete(self, archive: &Archive) -> Result<(), AccountError> {
