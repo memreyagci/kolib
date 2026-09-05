@@ -13,8 +13,8 @@ pub enum ArchiveError {
     #[error("database error: {0}")]
     Sqlx(#[from] sqlx::Error),
 
-    #[error("koli.db is not found")]
-    InvalidArchive { reason: Option<String> },
+    #[error("archive database `koli.db` was not found")]
+    DatabaseNotFound,
 
     #[error(transparent)]
     Migration(#[from] MigrationError),

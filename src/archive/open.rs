@@ -12,7 +12,7 @@ impl Archive {
 
         let db_file_path = folder.join(DATABASE_FILE_NAME);
         if !db_file_path.is_file() {
-            return Err(ArchiveError::InvalidArchive { reason: None });
+            return Err(ArchiveError::DatabaseNotFound);
         }
 
         let pool = get_pool_by_archive_path(&folder).await?;
