@@ -1,4 +1,5 @@
 use std::{
+    ffi::OsStr,
     fs::{self},
     path::Path,
 };
@@ -32,20 +33,19 @@ pub async fn import(
         });
     }
 
+    let file_path = file_path.as_ref();
+
     let content_str = fs::read_to_string(&file_path)?;
     let filename = file_path
-        .as_ref()
         .file_name()
-        .ok_or(ExportReaderError::ExportFileNotFound {
-            export_file_path: file_path.as_ref().to_string_lossy().to_string(),
-        })?
-        .to_string_lossy()
-        .to_string();
+        .ok_or_else(|| ExportReaderError::InvalidExportPath {
+            export_file_path: file_path.display().to_string(),
+        })?;
 
-    if filename != FILE_NAME {
-        return Err(ExportReaderError::InvalidFilename {
-            imported_filename: filename,
-            importer_name: String::from("twitter::direct_messages::import"),
+    if filename != OsStr::new(FILE_NAME) {
+        return Err(ExportReaderError::UnexpectedFilename {
+            expected: FILE_NAME.to_string(),
+            actual: filename.to_string_lossy().into_owned(),
         });
     }
 
