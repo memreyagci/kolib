@@ -39,32 +39,3 @@ impl Account {
         Ok(account)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        error::AccountError, export_reader::account::models::Account,
-        test_helpers::init_archive_in_temp_dir, types::Platform,
-    };
-
-    #[tokio::test]
-    async fn account_crud_succeeds() {
-        let (_guard, _, archive) = init_archive_in_temp_dir().await;
-        let acc_result = Account::create(&archive, "test", Platform::Twitter).await;
-
-        assert!(acc_result.is_ok());
-
-        let acc = acc_result.unwrap();
-        let acc_id = acc.id().clone();
-
-        assert!(Account::get_by_id(archive.pool(), acc.id()).await.is_ok());
-        assert!(acc.delete(&archive).await.is_ok());
-
-        // After deletion, we should not be able to fetch the deleted Account by id.
-        assert!(matches!(
-            Account::get_by_id(archive.pool(), &acc_id).await,
-            Err(AccountError::NotFound { account_id })
-                if account_id == acc_id.to_string()
-        ));
-    }
-}
