@@ -35,12 +35,12 @@ pub async fn import(
 
     let file_path = file_path.as_ref();
 
-    let content_str = fs::read_to_string(&file_path)?;
     let filename = file_path
         .file_name()
         .ok_or_else(|| ExportReaderError::InvalidExportPath {
             export_file_path: file_path.display().to_string(),
         })?;
+    let content_str = fs::read_to_string(&file_path)?;
 
     if filename != OsStr::new(FILE_NAME) {
         return Err(ExportReaderError::UnexpectedFilename {
