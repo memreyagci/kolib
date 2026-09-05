@@ -28,8 +28,6 @@ impl Archive {
     /// Sets up the database for a given archive. It handles both initialization of an
     /// empty database, and migrations for an existing one.
     // TODO: Check if you should verify hashes here too.
-    // TODO: tw_dm subtable rows need to be generated out of the first version's single row
-    // arrays.
     pub(super) async fn setup_db(archive: &Archive) -> Result<(), ArchiveError> {
         let migrations = Migration::get()?;
         let mut curr_ver = archive.db_version().await?;

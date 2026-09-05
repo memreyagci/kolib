@@ -40,7 +40,7 @@ pub async fn import(
         .ok_or_else(|| ExportReaderError::InvalidExportPath {
             export_file_path: file_path.display().to_string(),
         })?;
-    let content_str = fs::read_to_string(&file_path)?;
+    let content_str = fs::read_to_string(file_path)?;
 
     if filename != OsStr::new(FILE_NAME) {
         return Err(ExportReaderError::UnexpectedFilename {
@@ -51,7 +51,7 @@ pub async fn import(
 
     let to_import: TwitterDMRows = get_rows(account.id(), content_str)?;
 
-    // Create temp dirs and move the media and raw files there
+    // Create temp dirs and copy the media and raw files there
     // to be moved to the real dir right before transaction commit.
     let tmp_tw_dm_dir = archive
         .folder()
@@ -61,16 +61,15 @@ pub async fn import(
         .join("twitter-direct-messages");
 
     fs::create_dir_all(&tmp_tw_dm_dir)?;
-    fs::create_dir(&tmp_tw_dm_dir.join("raw"))?;
-    fs::create_dir(&tmp_tw_dm_dir.join("media"))?;
+    fs::create_dir(tmp_tw_dm_dir.join("raw"))?;
+    fs::create_dir(tmp_tw_dm_dir.join("media"))?;
 
-    fs::copy(&file_path, &tmp_tw_dm_dir.join("raw").join(filename))?;
+    fs::copy(file_path, &tmp_tw_dm_dir.join("raw").join(filename))?;
 
     // Media files are not a must for import process to be successful.
     // Users not having the media files for any reason should not prevent
-    // them from accessing their export files. Getter functions should
-    // return a none value, and end-user apps should indicate a missing
-    // file within the messages accordingly
+    // them from accessing their export files. End-user apps should indicate
+    // a missing file within the messages accordingly
     let export_file_dir = &file_path.parent();
     if let Some(efd) = export_file_dir {
         let dm_media_dir = efd.join("direct_messages_media");

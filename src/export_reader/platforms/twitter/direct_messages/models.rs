@@ -136,7 +136,7 @@ pub(crate) fn get_rows(
                         message.message_create.id.to_owned()
                     )
                 {
-                    for media_url in message.message_create.media_urls.to_owned() {
+                    for media_url in &message.message_create.media_urls {
                         let media_url_parsed = url::Url::parse(&media_url)?;
                         let last_path = media_url_parsed
                             .path_segments()

@@ -83,7 +83,7 @@ pub struct Url {
 
     // "url: String" is the shortened "t.co" link of Twitter/x
     // "display: String" is the truncated version shown in messages
-    // thus, display is all we need
+    // thus, expanded is all we need
     #[serde(flatten)]
     pub extra_stuff: serde_json::Value,
 }

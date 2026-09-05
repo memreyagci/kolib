@@ -1,4 +1,4 @@
-//! An account in kolib is where data from an account of a platform is be stored in.
+//! An account in kolib is where data from an account of a platform is stored in.
 //!
 //! For instance, a user can create an account with the name @my_old_acc for Twitter, in that account,
 //! only pre-defined export/takeout files knowing to be coming from Twitter will be accepted.

@@ -10,8 +10,6 @@ use crate::{
 };
 
 impl Account {
-    /// Takes the Account model (consumes it, thus users won't end up continuing to have the
-    /// pre-rename instance) and returns the renamed one.
     pub async fn rename(&mut self, pool: &SqlitePool, new_name: &str) -> Result<(), AccountError> {
         Self::validate_name(new_name)?;
 

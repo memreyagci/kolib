@@ -11,7 +11,6 @@ async fn imports_comprehensive_export() {
     // - One dataset was added.
     // - Its type is "direct-messages.js".
     // - Existing media fixtures were copied, and intentionally missing one was not.
-    // - Getter results, when implemented, returns the expected counts.
     let (_guard, _, archive, account) = create_account_in_temp_dir(Platform::Twitter).await;
 
     import(&archive, &account, twitter_dm_fixture("comprehensive"))
