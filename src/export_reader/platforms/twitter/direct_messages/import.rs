@@ -94,16 +94,6 @@ pub async fn import(
 
     let mut tx = archive.pool().begin().await?;
 
-    sqlx::query!(
-        "INSERT INTO account_datasets
-            (account_id, dataset_type)
-            VALUES (?, ?)",
-        account.id().to_string(),
-        FILE_NAME
-    )
-    .execute(&mut *tx)
-    .await?;
-
     for main in &to_import.main {
         sqlx::query!(
             "INSERT INTO twitter_direct_messages

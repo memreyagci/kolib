@@ -155,3 +155,11 @@ ALTER TABLE twitter_dm_attachments_v2
 RENAME TO twitter_dm_attachments;
 
 CREATE UNIQUE INDEX twitter_dm_unique ON twitter_direct_messages (account_id, message_create_id);
+
+CREATE TRIGGER twitter_dm_create_dataset AFTER INSERT ON twitter_direct_messages BEGIN
+INSERT OR IGNORE INTO
+  account_datasets (account_id, dataset_type)
+VALUES
+  (NEW.account_id, 'direct-messages.js');
+
+END;
