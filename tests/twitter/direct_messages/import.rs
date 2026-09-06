@@ -58,12 +58,27 @@ async fn imports_comprehensive_export() {
 }
 
 #[tokio::test]
-async fn imports_empty_export() {
+async fn accepts_empty_export_without_creating_dataset_or_directory() {
     let (_guard, _, archive, account) = create_account_in_temp_dir(Platform::Twitter).await;
 
     import(&archive, &account, twitter_dm_fixture("empty"))
         .await
         .expect("empty Twitter DM import should succeed");
+
+    let datasets = account
+        .get_datasets(&archive)
+        .await
+        .expect("getting datasets after an empty import should succeed");
+    assert!(datasets.is_empty()); // No dataset should be created for an empty export file.
+    assert!(
+        !archive
+            .folder()
+            .join("accounts")
+            .join(account.id().to_string())
+            .join("twitter-direct-messages")
+            .exists(),
+        "empty import unexpectedly created a dataset directory"
+    );
 }
 
 #[tokio::test]

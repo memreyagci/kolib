@@ -51,6 +51,12 @@ pub async fn import(
 
     let to_import: TwitterDMRows = get_rows(account.id(), content_str)?;
 
+    // If there are no items in an export file, thus nothing to import, returns
+    // early, so no directory is created in the archive.
+    if to_import.main.is_empty() {
+        return Ok(());
+    }
+
     // Create temp dirs and copy the media and raw files there
     // to be moved to the real dir right before transaction commit.
     let tmp_tw_dm_dir = archive
