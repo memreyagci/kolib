@@ -7,7 +7,7 @@ pub enum SortOrder {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Pagination {
+pub struct PageRequest {
     page_index: u32,
     page_size: NonZeroU32,
     order: SortOrder,
@@ -21,9 +21,9 @@ pub struct Page<T> {
     total_items: u64,
 }
 
-impl Pagination {
+impl PageRequest {
     pub fn new(page_index: u32, page_size: NonZeroU32) -> Self {
-        Pagination {
+        PageRequest {
             page_index,
             page_size,
             order: SortOrder::OldestFirst,
@@ -47,7 +47,7 @@ impl Pagination {
 }
 
 impl<T> Page<T> {
-    pub(crate) fn new(items: Vec<T>, pagination: Pagination, total_items: u64) -> Self {
+    pub(crate) fn new(items: Vec<T>, pagination: PageRequest, total_items: u64) -> Self {
         Page {
             items,
             page_index: pagination.page_index(),
@@ -89,10 +89,10 @@ impl<T> Page<T> {
 mod tests {
     use std::num::NonZeroU32;
 
-    use super::{Page, Pagination, SortOrder};
+    use super::{Page, PageRequest, SortOrder};
 
     fn page(page_index: u32, page_size: u32, total_items: u64) -> Page<()> {
-        let pagination = Pagination::new(page_index, NonZeroU32::new(page_size).unwrap());
+        let pagination = PageRequest::new(page_index, NonZeroU32::new(page_size).unwrap());
 
         Page::new(Vec::new(), pagination, total_items)
     }
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn uses_oldest_first_by_default() {
-        let pagination = Pagination::new(0, NonZeroU32::new(5).unwrap());
+        let pagination = PageRequest::new(0, NonZeroU32::new(5).unwrap());
 
         assert_eq!(pagination.order(), SortOrder::OldestFirst);
     }
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn changes_sort_order() {
         let pagination =
-            Pagination::new(0, NonZeroU32::new(5).unwrap()).with_order(SortOrder::NewestFirst);
+            PageRequest::new(0, NonZeroU32::new(5).unwrap()).with_order(SortOrder::NewestFirst);
 
         assert_eq!(pagination.order(), SortOrder::NewestFirst);
     }
