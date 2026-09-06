@@ -1,0 +1,107 @@
+{
+  "db_name": "SQLite",
+  "query": "\n  SELECT\n    message.message_create_id AS \"id!\",\n    message.conversation_id,\n    message.sender_id,\n    message.recipient_id,\n    message.text AS \"text!\",\n    message.created_at,\n    (\n      SELECT json_group_array(\n        json_object(\n          'event_id', reaction.event_id,\n          'sender_id', reaction.sender_id,\n          'reaction_key', reaction.reaction_key,\n          'created_at', reaction.created_at\n        )\n      )\n      FROM (\n        SELECT\n          event_id,\n          sender_id,\n          reaction_key,\n          created_at\n        FROM twitter_dm_reactions\n        WHERE main_id = message.id\n        ORDER BY created_at, event_id\n      ) AS reaction\n    ) AS \"reactions!: Json<Vec<Reaction>>\",\n    (\n      SELECT json_group_array(\n        json_object(\n          'edited_text', edit.edited_text,\n          'created_at_sec', edit.created_at_sec\n        )\n      )\n      FROM (\n        SELECT\n          edited_text,\n          created_at_sec\n        FROM twitter_dm_edit_history\n        WHERE main_id = message.id\n        ORDER BY ordinal\n      ) AS edit\n    ) AS \"edit_history!: Json<Vec<Edit>>\",\n    (\n      SELECT json_group_array(\n        json_object(\n          'source_kind', attachment.source_kind,\n          'source', attachment.source\n        )\n      )\n      FROM (\n        SELECT\n          source_kind,\n          source\n        FROM twitter_dm_attachments\n        WHERE main_id = message.id\n        ORDER BY ordinal\n      ) AS attachment\n    ) AS \"attachments!: Json<Vec<Attachment>>\"\n  FROM twitter_direct_messages AS message\n  WHERE message.account_id = ?\n    AND message.conversation_id = ?\n  ORDER BY message.created_at, message.message_create_id\n  LIMIT ?\n  OFFSET ?\n  ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "twitter_direct_messages",
+            "name": "message_create_id"
+          }
+        }
+      },
+      {
+        "name": "conversation_id",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "twitter_direct_messages",
+            "name": "conversation_id"
+          }
+        }
+      },
+      {
+        "name": "sender_id",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "twitter_direct_messages",
+            "name": "sender_id"
+          }
+        }
+      },
+      {
+        "name": "recipient_id",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "twitter_direct_messages",
+            "name": "recipient_id"
+          }
+        }
+      },
+      {
+        "name": "text!",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "twitter_direct_messages",
+            "name": "text"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "twitter_direct_messages",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "name": "reactions!: Json<Vec<Reaction>>",
+        "ordinal": 6,
+        "type_info": "Null",
+        "origin": "Expression"
+      },
+      {
+        "name": "edit_history!: Json<Vec<Edit>>",
+        "ordinal": 7,
+        "type_info": "Null",
+        "origin": "Expression"
+      },
+      {
+        "name": "attachments!: Json<Vec<Attachment>>",
+        "ordinal": 8,
+        "type_info": "Null",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "beec038380aaa59bd036114b95a05553d46f1ccfe6cb6d73818042bc3b10afab"
+}

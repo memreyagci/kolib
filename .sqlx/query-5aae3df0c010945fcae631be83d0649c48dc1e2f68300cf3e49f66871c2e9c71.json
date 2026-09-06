@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n          INSERT INTO twitter_dm_attachments\n              (main_id, ordinal, source_kind, source)\n          VALUES (?, ?, ?, ?)\n          ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "5aae3df0c010945fcae631be83d0649c48dc1e2f68300cf3e49f66871c2e9c71"
+}
