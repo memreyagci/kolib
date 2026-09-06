@@ -22,11 +22,11 @@ pub struct Page<T> {
 }
 
 impl Pagination {
-    pub fn new(page_index: u32, page_size: NonZeroU32, order: SortOrder) -> Self {
+    pub fn new(page_index: u32, page_size: NonZeroU32) -> Self {
         Pagination {
             page_index,
             page_size,
-            order,
+            order: SortOrder::OldestFirst,
         }
     }
 
@@ -38,6 +38,11 @@ impl Pagination {
     }
     pub fn order(&self) -> SortOrder {
         self.order
+    }
+
+    pub fn with_order(mut self, order: SortOrder) -> Self {
+        self.order = order;
+        self
     }
 }
 
