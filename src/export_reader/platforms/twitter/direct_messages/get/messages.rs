@@ -1,7 +1,10 @@
 use crate::{
     archive::model::Archive,
     error::{ExportReaderError, TwitterError},
-    export_reader::account::models::Account,
+    export_reader::{
+        account::models::Account,
+        pagination::{Page, PageRequest, SortOrder},
+    },
 };
 
 use serde_with::serde_as;
@@ -171,6 +174,26 @@ pub async fn get_messages_by_conversation(
 ) -> Result<Vec<DirectMessage>, ExportReaderError> {
     let account_id = account.id().to_string();
 
+    let messages = fetch_messages(archive, &account_id, conversation_id, i64::MAX, 0).await?;
+
+    if messages.is_empty() {
+        return Err(TwitterError::ConversationNotFound {
+            account_id,
+            conversation_id: conversation_id.to_owned(),
+        }
+        .into());
+    }
+
+    Ok(messages)
+}
+
+async fn fetch_messages(
+    archive: &Archive,
+    account_id: &str,
+    conversation_id: &str,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<DirectMessage>, ExportReaderError> {
     let rows = sqlx::query!(
         r#"
   SELECT
@@ -236,20 +259,16 @@ pub async fn get_messages_by_conversation(
   WHERE message.account_id = ?
     AND message.conversation_id = ?
   ORDER BY message.created_at, message.message_create_id
+  LIMIT ?
+  OFFSET ?
   "#,
         account_id,
-        conversation_id
+        conversation_id,
+        limit,
+        offset,
     )
     .fetch_all(archive.pool())
     .await?;
-
-    if rows.is_empty() {
-        return Err(TwitterError::ConversationNotFound {
-            account_id,
-            conversation_id: conversation_id.to_owned(),
-        }
-        .into());
-    }
 
     let direct_messages = rows
         .into_iter()
@@ -267,4 +286,69 @@ pub async fn get_messages_by_conversation(
         .collect();
 
     Ok(direct_messages)
+}
+
+pub async fn get_message_page_by_conversation(
+    archive: &Archive,
+    account: &Account,
+    conversation_id: &str,
+    pagination: PageRequest,
+) -> Result<Page<DirectMessage>, ExportReaderError> {
+    let account_id = account.id().to_string();
+
+    let total_items = sqlx::query_scalar!(
+        r#"
+          SELECT COUNT(*)
+          FROM twitter_direct_messages
+          WHERE account_id = ?
+            AND conversation_id = ?
+          "#,
+        account_id,
+        conversation_id
+    )
+    .fetch_one(archive.pool())
+    .await?;
+
+    if total_items == 0 {
+        return Err(TwitterError::ConversationNotFound {
+            account_id,
+            conversation_id: conversation_id.to_owned(),
+        }
+        .into());
+    }
+
+    let total_items = total_items as u64;
+    let page_index = u64::from(pagination.page_index());
+    let page_size = u64::from(pagination.page_size().get());
+    let skipped_items = page_index * page_size;
+
+    let (offset, limit) = match pagination.order() {
+        SortOrder::OldestFirst => {
+            let start = skipped_items.min(total_items);
+            let end = (start + page_size).min(total_items);
+
+            (start, end - start)
+        }
+        SortOrder::NewestFirst => {
+            let end = total_items.saturating_sub(skipped_items);
+            let start = end.saturating_sub(page_size);
+
+            (start, end - start)
+        }
+    };
+
+    let mut messages = fetch_messages(
+        archive,
+        &account_id,
+        conversation_id,
+        limit as i64,
+        offset as i64,
+    )
+    .await?;
+
+    if pagination.order() == SortOrder::NewestFirst {
+        messages.reverse();
+    }
+
+    Ok(Page::new(messages, pagination, total_items))
 }
