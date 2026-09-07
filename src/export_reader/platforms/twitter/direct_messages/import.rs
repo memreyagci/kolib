@@ -1,5 +1,4 @@
 use std::{
-    ffi::OsStr,
     fs::{self},
     path::Path,
 };
@@ -8,9 +7,9 @@ use crate::{
     archive::model::Archive,
     error::ExportReaderError,
     export_reader::{
-        account::models::Account,
+        account::models::{Account, DatasetType},
         platforms::twitter::direct_messages::{
-            FILE_NAME,
+            DATASET_TYPE,
             models::{TwitterDMRows, get_rows},
         },
     },
@@ -42,9 +41,9 @@ pub async fn import(
         })?;
     let content_str = fs::read_to_string(file_path)?;
 
-    if filename != OsStr::new(FILE_NAME) {
+    if DatasetType::from_file_name(filename.to_string_lossy().into_owned()) != DATASET_TYPE {
         return Err(ExportReaderError::UnexpectedFilename {
-            expected: FILE_NAME.to_string(),
+            expected: DATASET_TYPE.file_name().to_string(),
             actual: filename.to_string_lossy().into_owned(),
         });
     }

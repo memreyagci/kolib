@@ -3,7 +3,7 @@ use std::str::FromStr;
 use kolib::{
     archive::model::Archive,
     export_reader::{
-        account::models::{Account, AccountId},
+        account::models::{Account, AccountId, DatasetType},
         platforms::twitter::direct_messages::{
             AttachmentSourceKind, get_conversations_by_account, get_messages_by_conversation,
         },
@@ -169,7 +169,10 @@ async fn migrates_v1_archive_to_latest() {
         .expect("the migrated account's datasets should remain readable");
     assert_eq!(datasets.len(), 1);
     assert_eq!(datasets[0].account_id(), account.id());
-    assert_eq!(datasets[0].dataset_type(), "direct-messages.js");
+    assert_eq!(
+        datasets[0].dataset_type(),
+        &DatasetType::TwitterDirectMessages
+    );
 
     let migrated_dataset_path = archive
         .folder()

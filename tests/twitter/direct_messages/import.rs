@@ -1,7 +1,8 @@
 use std::fs;
 
 use kolib::{
-    error::ExportReaderError, export_reader::platforms::twitter::direct_messages::import,
+    error::ExportReaderError,
+    export_reader::{account::models::DatasetType, platforms::twitter::direct_messages::import},
     types::Platform,
 };
 
@@ -22,7 +23,10 @@ async fn imports_comprehensive_export() {
         .expect("getting the imported account's datasets should succeed");
     assert_eq!(datasets.len(), 1);
     assert_eq!(datasets[0].account_id(), account.id());
-    assert_eq!(datasets[0].dataset_type(), "direct-messages.js");
+    assert_eq!(
+        datasets[0].dataset_type(),
+        &DatasetType::TwitterDirectMessages
+    );
 
     let imported_dataset_path = archive
         .folder()

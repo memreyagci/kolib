@@ -12,4 +12,5 @@ pub type IsoDateTime = DateTime<Utc>;
 #[strum(ascii_case_insensitive)]
 pub enum Platform {
     Twitter,
+    Unknown,
 }

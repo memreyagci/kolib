@@ -64,6 +64,9 @@ pub enum AccountError {
     #[error("Account name cannot be empty or contain only whitespace.")]
     InvalidName,
 
+    #[error("This file is not supported: {filename}")]
+    InvalidDatasetType { filename: String },
+
     #[error("database error: {0}")]
     Sqlx(#[from] sqlx::Error),
 

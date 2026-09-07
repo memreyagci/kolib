@@ -7,4 +7,6 @@ pub(crate) mod schema;
 pub use get::*;
 pub use import::import;
 
-pub const FILE_NAME: &str = "direct-messages.js";
+use crate::export_reader::account::models::DatasetType;
+
+pub const DATASET_TYPE: DatasetType = DatasetType::TwitterDirectMessages;
