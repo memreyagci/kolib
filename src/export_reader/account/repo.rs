@@ -33,9 +33,6 @@ impl Account {
     }
 
     pub async fn delete(self, archive: &Archive) -> Result<(), AccountError> {
-        // TODO: make sure doing so also deletes all related fields from account_datasets and platform
-        // file-related tables
-
         let account_id = self.id().to_string();
 
         let result = sqlx::query!("DELETE FROM accounts WHERE id = ?", &account_id)
