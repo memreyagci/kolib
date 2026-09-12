@@ -1,8 +1,10 @@
+use crate::types::Platform;
+
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct MessageRow {
     pub(crate) id: String,
     pub(crate) account_id: String,
-    pub(crate) platform: String,
+    pub(crate) platform: Platform,
     pub(crate) conversation_id: String,
     pub(crate) record_id: String,
     pub(crate) sender: String,

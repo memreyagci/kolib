@@ -5,7 +5,10 @@ use sqlx::SqlitePool;
 use crate::{
     archive::model::Archive,
     error::AccountError,
-    export_reader::account::models::{Account, AccountId, Dataset, DatasetType},
+    export_reader::{
+        account::models::{Account, AccountId, Dataset},
+        datasets::DatasetType,
+    },
     types::Platform,
 };
 
@@ -78,7 +81,7 @@ impl Account {
             .map(|row| -> Result<Dataset, AccountError> {
                 Ok(Dataset::new(
                     AccountId::from_str(&row.account_id)?,
-                    DatasetType::from_file_name(row.dataset_type),
+                    DatasetType::from_str(&row.dataset_type)?,
                 ))
             })
             .collect::<Result<Vec<_>, _>>()?;

@@ -37,6 +37,9 @@ pub enum ExportReaderError {
         importer_platform: String,
     },
 
+    #[error("platform `{platform}` is not supported for imports")]
+    UnsupportedPlatform { platform: String },
+
     #[error("database error: {0}")]
     Sqlx(#[from] sqlx::Error),
 
@@ -54,6 +57,9 @@ pub enum ExportReaderError {
 
     #[error("media path could not be parsed")]
     MediaPathParse,
+
+    #[error("media filename `{filename}` is invalid")]
+    InvalidMediaFilename { filename: String },
 
     #[error("url error: {0}")]
     Url(#[from] url::ParseError),

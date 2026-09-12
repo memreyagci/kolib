@@ -32,8 +32,6 @@ pub(crate) fn to_rows(
     let mut rows = MessageImportRows::default();
 
     let account_id = account_id.to_string();
-    let platform = Platform::Twitter.to_string();
-
     for conversation in export {
         let conversation_id = conversation.dm_conversation.conversation_id;
 
@@ -45,7 +43,7 @@ pub(crate) fn to_rows(
             rows.messages.push(MessageRow {
                 id: main_id.clone(),
                 account_id: account_id.clone(),
-                platform: platform.clone(),
+                platform: Platform::Twitter,
                 conversation_id: conversation_id.clone(),
                 record_id: record_id.clone(),
                 sender: message.sender_id,
@@ -156,7 +154,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::to_rows;
-    use crate::export_reader::account::models::AccountId;
+    use crate::{export_reader::account::models::AccountId, types::Platform};
 
     const COMPREHENSIVE_EXPORT: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -177,7 +175,7 @@ mod tests {
 
         assert!(rows.messages.iter().all(|message| {
             message.account_id == account_id.to_string()
-                && message.platform == "twitter"
+                && message.platform == Platform::Twitter
                 && Uuid::parse_str(&message.id).is_ok()
         }));
 

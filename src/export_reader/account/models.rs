@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use uuid::Uuid;
 
-use crate::{error::AccountError, types::Platform};
+use crate::{error::AccountError, export_reader::datasets::DatasetType, types::Platform};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AccountId(Uuid);
@@ -58,48 +58,6 @@ impl Account {
         }
 
         Ok(())
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DatasetType {
-    TwitterDirectMessages,
-    Unknown,
-}
-impl DatasetType {
-    pub fn from_file_name(filename: String) -> Self {
-        match filename.as_str() {
-            "direct-messages.js" => Self::TwitterDirectMessages,
-            _ => Self::Unknown,
-        }
-    }
-
-    pub fn platform(self) -> Platform {
-        match self {
-            Self::TwitterDirectMessages => Platform::Twitter,
-            Self::Unknown => Platform::Unknown,
-        }
-    }
-
-    pub fn key(self) -> &'static str {
-        match self {
-            Self::TwitterDirectMessages => "twitter.direct_messages",
-            Self::Unknown => "unknown",
-        }
-    }
-
-    pub fn display_name(self) -> &'static str {
-        match self {
-            Self::TwitterDirectMessages => "Direct Messages",
-            Self::Unknown => "Unknown",
-        }
-    }
-
-    pub fn file_name(self) -> &'static str {
-        match self {
-            Self::TwitterDirectMessages => "direct-messages.js",
-            Self::Unknown => "unknown",
-        }
     }
 }
 
