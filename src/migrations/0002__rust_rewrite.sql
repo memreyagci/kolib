@@ -147,15 +147,7 @@ SELECT
   CAST(reaction.key AS INTEGER),
   json_extract(reaction.value, '$.eventId'),
   json_extract(reaction.value, '$.senderId'),
-  CASE json_extract(reaction.value, '$.reactionKey')
-    WHEN '👍' THEN 'agree'
-    WHEN '👎' THEN 'disagree'
-    WHEN '😂' THEN 'funny'
-    WHEN '❤️' THEN 'like'
-    WHEN '😔' THEN 'sad'
-    WHEN '😮' THEN 'surprised'
-    ELSE json_extract(reaction.value, '$.reactionKey')
-  END,
+  json_extract(reaction.value, '$.reactionKey'),
   CAST(
     json_extract(reaction.value, '$.createdAt') AS INTEGER
   )
