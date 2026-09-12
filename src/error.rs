@@ -65,7 +65,10 @@ pub enum ExportReaderError {
     Url(#[from] url::ParseError),
 
     #[error(transparent)]
-    Twitter(#[from] TwitterError),
+    Message(#[from] MessageError),
+
+    #[error("strum error: {0}")]
+    Strum(#[from] strum::ParseError),
 }
 
 #[derive(Error, Debug)]
@@ -111,7 +114,7 @@ pub enum MigrationError {
 }
 
 #[derive(Debug, Error)]
-pub enum TwitterError {
+pub enum MessageError {
     #[error("conversation `{conversation_id}` was not found for account `{account_id}`")]
     ConversationNotFound {
         account_id: String,
