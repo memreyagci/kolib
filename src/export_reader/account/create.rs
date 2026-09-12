@@ -28,12 +28,7 @@ impl Account {
         .execute(&mut *tx)
         .await?;
 
-        fs::create_dir_all(
-            archive
-                .folder()
-                .join("accounts")
-                .join(account.id().to_string()),
-        )?;
+        fs::create_dir_all(archive.account_directory(&account))?;
         tx.commit().await?;
 
         Ok(account)
