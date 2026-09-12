@@ -10,78 +10,141 @@ CREATE TABLE IF NOT EXISTS `kolib_migrations` (
   `applied_at` INTEGER DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create a new table for Twitter DMs, to change "created_at" type
--- from INTEGER to TEXT, since I've decided to make as less conversions
--- as possible upon insertions, so that bugs fixes are not DB migrations,
--- but mere viewer updates instead.
-CREATE TABLE twitter_direct_messages_v2 (
+CREATE TABLE platforms (id TEXT PRIMARY KEY NOT NULL);
+
+INSERT INTO
+  platforms (id)
+VALUES
+  ('twitter');
+
+CREATE TABLE dataset_types (id TEXT PRIMARY KEY NOT NULL);
+
+INSERT INTO
+  dataset_types (id)
+VALUES
+  ('messages');
+
+-- Rebuild accounts so its platform is constrained by the platforms table and
+-- (id, platform) can be referenced by data tables.
+CREATE TABLE accounts_v2 (
   id TEXT PRIMARY KEY NOT NULL,
-  account_id TEXT NOT NULL,
-  other_user_id TEXT NOT NULL,
-  conversation_id TEXT NOT NULL,
-  message_create_id TEXT NOT NULL,
-  sender_id TEXT NOT NULL,
-  recipient_id TEXT NOT NULL,
-  text TEXT,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (account_id) REFERENCES accounts (id) ON UPDATE NO ACTION ON DELETE CASCADE
+  name TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  user_id TEXT,
+  UNIQUE (id, platform),
+  FOREIGN KEY (platform) REFERENCES platforms (id) ON UPDATE NO ACTION ON DELETE RESTRICT
 );
 
--- Insert everything in the old Twitter DM table to the new one, while
--- converting "created_at".
 INSERT INTO
-  twitter_direct_messages_v2 (
+  accounts_v2 (id, name, platform, user_id)
+SELECT
+  id,
+  name,
+  platform,
+  user_id
+FROM
+  accounts;
+
+CREATE TABLE messages (
+  id TEXT PRIMARY KEY NOT NULL,
+  account_id TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  conversation_id TEXT NOT NULL,
+  record_id TEXT NOT NULL,
+  sender TEXT NOT NULL,
+  recipient TEXT,
+  text TEXT,
+  created_at_ms INTEGER,
+  FOREIGN KEY (account_id, platform) REFERENCES accounts_v2 (id, platform) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Platform-specific identity indexes may become unnecessary if every parser
+-- eventually generates conversation and record IDs with common guarantees.
+CREATE UNIQUE INDEX twitter_message_identity ON messages (account_id, conversation_id, record_id)
+WHERE
+  platform = 'twitter';
+
+CREATE TABLE messages_reactions (
+  main_id TEXT NOT NULL,
+  ordinal INTEGER NOT NULL,
+  -- Stable record identity, supplied by the platform when available or
+  -- deterministically derived by the platform parser.
+  record_id TEXT,
+  sender TEXT,
+  reaction TEXT NOT NULL,
+  created_at_ms INTEGER,
+  PRIMARY KEY (main_id, ordinal),
+  FOREIGN KEY (main_id) REFERENCES messages (id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX message_reaction_record_identity ON messages_reactions (main_id, record_id)
+WHERE
+  record_id IS NOT NULL;
+
+CREATE TABLE messages_edits (
+  main_id TEXT NOT NULL,
+  ordinal INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  created_at_ms INTEGER,
+  PRIMARY KEY (main_id, ordinal),
+  FOREIGN KEY (main_id) REFERENCES messages (id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+CREATE TABLE messages_file_attachments (
+  main_id TEXT NOT NULL,
+  ordinal INTEGER NOT NULL,
+  file_rel_path TEXT NOT NULL,
+  created_at_ms INTEGER,
+  PRIMARY KEY (main_id, ordinal),
+  FOREIGN KEY (main_id) REFERENCES messages (id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+CREATE TABLE messages_link_attachments (
+  main_id TEXT NOT NULL,
+  ordinal INTEGER NOT NULL,
+  url TEXT NOT NULL,
+  created_at_ms INTEGER,
+  PRIMARY KEY (main_id, ordinal),
+  FOREIGN KEY (main_id) REFERENCES messages (id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+INSERT INTO
+  messages (
     id,
     account_id,
-    other_user_id,
+    platform,
     conversation_id,
-    message_create_id,
-    sender_id,
-    recipient_id,
+    record_id,
+    sender,
+    recipient,
     text,
-    created_at
+    created_at_ms
   )
 SELECT
   id,
   account_id,
-  other_user_id,
+  'twitter',
   conversation_id,
   message_create_id,
   sender_id,
   recipient_id,
   text,
-  strftime(
-    '%Y-%m-%dT%H:%M:%fZ',
-    created_at / 1000.0,
-    'unixepoch'
-  )
+  created_at
 FROM
   twitter_direct_messages;
 
--- Create separate tables for these columns, so there is less internal
--- logic for dealing with array/json-like columns. Moreover, it will be easier
--- to deal with merging an existing dataset type in an account with a new one in
--- the future.
-CREATE TABLE twitter_dm_reactions (
-  main_id TEXT NOT NULL,
-  event_id TEXT NOT NULL,
-  sender_id TEXT NOT NULL,
-  reaction_key TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  PRIMARY KEY (main_id, event_id),
-  FOREIGN KEY (main_id) REFERENCES twitter_direct_messages_v2 (id) ON DELETE CASCADE
-);
-
 INSERT INTO
-  twitter_dm_reactions (
+  messages_reactions (
     main_id,
-    event_id,
-    sender_id,
-    reaction_key,
-    created_at
+    ordinal,
+    record_id,
+    sender,
+    reaction,
+    created_at_ms
   )
 SELECT
   message.id,
+  CAST(reaction.key AS INTEGER),
   json_extract(reaction.value, '$.eventId'),
   json_extract(reaction.value, '$.senderId'),
   CASE json_extract(reaction.value, '$.reactionKey')
@@ -93,73 +156,103 @@ SELECT
     WHEN '😮' THEN 'surprised'
     ELSE json_extract(reaction.value, '$.reactionKey')
   END,
-  strftime(
-    '%Y-%m-%dT%H:%M:%fZ',
-    json_extract(reaction.value, '$.createdAt') / 1000.0,
-    'unixepoch'
+  CAST(
+    json_extract(reaction.value, '$.createdAt') AS INTEGER
   )
 FROM
   twitter_direct_messages AS message,
   json_each(message.reactions) AS reaction;
 
-CREATE TABLE twitter_dm_edit_history (
-  main_id TEXT NOT NULL,
-  ordinal INTEGER NOT NULL,
-  edited_text TEXT NOT NULL,
-  created_at_sec TEXT NOT NULL,
-  PRIMARY KEY (main_id, ordinal),
-  FOREIGN KEY (main_id) REFERENCES twitter_direct_messages_v2 (id) ON DELETE CASCADE
-);
-
 INSERT INTO
-  twitter_dm_edit_history (main_id, ordinal, edited_text, created_at_sec)
+  messages_edits (main_id, ordinal, text, created_at_ms)
 SELECT
   message.id,
   CAST(edit.key AS INTEGER),
   json_extract(edit.value, '$.editedText'),
-  json_extract(edit.value, '$.createdAtSec')
+  CAST(
+    json_extract(edit.value, '$.createdAtSec') AS INTEGER
+  ) * 1000
 FROM
   twitter_direct_messages AS message,
   json_each(message.edit_history) AS edit;
 
-CREATE TABLE twitter_dm_attachments_v2 (
-  main_id TEXT NOT NULL,
-  ordinal INTEGER NOT NULL,
-  source_kind TEXT NOT NULL CHECK (source_kind IN ('url', 'file')),
-  source TEXT NOT NULL,
-  PRIMARY KEY (main_id, ordinal),
-  FOREIGN KEY (main_id) REFERENCES twitter_direct_messages_v2 (id) ON UPDATE NO ACTION ON DELETE CASCADE
-);
-
 INSERT INTO
-  twitter_dm_attachments_v2 (main_id, ordinal, source_kind, source)
+  messages_file_attachments (main_id, ordinal, file_rel_path)
 SELECT
   message_id,
   ordinal,
-  CASE external
-    WHEN 0 THEN 'file'
-    WHEN 1 THEN 'url'
-  END,
   target
 FROM
-  twitter_direct_messages_attachments;
+  twitter_direct_messages_attachments
+WHERE
+  external = 0;
+
+INSERT INTO
+  messages_link_attachments (main_id, ordinal, url)
+SELECT
+  message_id,
+  ordinal,
+  target
+FROM
+  twitter_direct_messages_attachments
+WHERE
+  external = 1;
+
+CREATE TABLE account_datasets_v2 (
+  account_id TEXT NOT NULL,
+  dataset_type TEXT NOT NULL,
+  PRIMARY KEY (account_id, dataset_type),
+  FOREIGN KEY (account_id) REFERENCES accounts_v2 (id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (dataset_type) REFERENCES dataset_types (id) ON UPDATE NO ACTION ON DELETE RESTRICT
+);
+
+INSERT INTO
+  account_datasets_v2 (account_id, dataset_type)
+SELECT
+  account_id,
+  'messages'
+FROM
+  account_datasets
+WHERE
+  dataset_type = 'direct-messages.js';
 
 DROP TABLE twitter_direct_messages_attachments;
 
 DROP TABLE twitter_direct_messages;
 
-ALTER TABLE twitter_direct_messages_v2
-RENAME TO twitter_direct_messages;
+DROP TABLE account_datasets;
 
-ALTER TABLE twitter_dm_attachments_v2
-RENAME TO twitter_dm_attachments;
+DROP TABLE accounts;
 
-CREATE UNIQUE INDEX twitter_dm_unique ON twitter_direct_messages (account_id, message_create_id);
+ALTER TABLE accounts_v2
+RENAME TO accounts;
 
-CREATE TRIGGER twitter_dm_create_dataset AFTER INSERT ON twitter_direct_messages BEGIN
+ALTER TABLE account_datasets_v2
+RENAME TO account_datasets;
+
+CREATE TRIGGER accounts_validate_name_on_insert BEFORE INSERT ON accounts WHEN length(trim(NEW.name)) NOT BETWEEN 1 AND 100  BEGIN
+SELECT
+  RAISE (
+    ABORT,
+    'account name must be between 1 and 100 characters'
+  );
+
+END;
+
+CREATE TRIGGER accounts_validate_name_on_update BEFORE
+UPDATE OF name ON accounts WHEN length(trim(NEW.name)) NOT BETWEEN 1 AND 100  BEGIN
+SELECT
+  RAISE (
+    ABORT,
+    'account name must be between 1 and 100 characters'
+  );
+
+END;
+
+CREATE TRIGGER messages_create_dataset AFTER INSERT ON messages BEGIN
 INSERT OR IGNORE INTO
   account_datasets (account_id, dataset_type)
 VALUES
-  (NEW.account_id, 'direct-messages.js');
+  (NEW.account_id, 'messages');
 
 END;
