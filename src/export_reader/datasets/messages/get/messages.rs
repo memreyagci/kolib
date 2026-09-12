@@ -7,9 +7,10 @@ use crate::{
     error::{ExportReaderError, MessageError},
     export_reader::{
         account::models::Account,
+        datasets::DatasetType,
         pagination::{Page, PageRequest, SortOrder},
     },
-    types::Platform,
+    types::{Platform, Timestamp},
 };
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -17,7 +18,7 @@ pub struct Reaction {
     record_id: Option<String>,
     sender: Option<String>,
     reaction: String,
-    created_at_ms: Option<i64>,
+    created_at: Option<Timestamp>,
 }
 
 impl Reaction {
@@ -33,15 +34,15 @@ impl Reaction {
         &self.reaction
     }
 
-    pub fn created_at_ms(&self) -> Option<i64> {
-        self.created_at_ms
+    pub fn created_at(&self) -> Option<Timestamp> {
+        self.created_at
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Edit {
     text: String,
-    created_at_ms: Option<i64>,
+    created_at: Option<Timestamp>,
 }
 
 impl Edit {
@@ -49,8 +50,8 @@ impl Edit {
         &self.text
     }
 
-    pub fn created_at_ms(&self) -> Option<i64> {
-        self.created_at_ms
+    pub fn created_at(&self) -> Option<Timestamp> {
+        self.created_at
     }
 }
 
@@ -58,7 +59,7 @@ impl Edit {
 pub struct Attachment {
     source_kind: AttachmentSourceKind,
     source: String,
-    created_at_ms: Option<i64>,
+    created_at: Option<Timestamp>,
 }
 
 impl Attachment {
@@ -91,7 +92,7 @@ pub struct Message {
     sender: String,
     recipient: Option<String>,
     text: Option<String>,
-    created_at_ms: Option<i64>,
+    created_at: Option<Timestamp>,
     reactions: Vec<Reaction>,
     edit_history: Vec<Edit>,
     attachments: Vec<Attachment>,
@@ -126,8 +127,8 @@ impl Message {
         self.text.as_deref()
     }
 
-    pub fn created_at_ms(&self) -> Option<i64> {
-        self.created_at_ms
+    pub fn created_at(&self) -> Option<Timestamp> {
+        self.created_at
     }
 
     pub fn reactions(&self) -> &[Reaction] {
@@ -164,7 +165,7 @@ pub async fn get_messages_by_conversation(
     conversation_id: &str,
 ) -> Result<Vec<Message>, ExportReaderError> {
     let account_id = account.id().to_string();
-    let messages = fetch_messages(archive, &account_id, conversation_id, i64::MAX, 0).await?;
+    let messages = fetch_messages(archive, account, conversation_id, i64::MAX, 0).await?;
 
     if messages.is_empty() {
         return Err(MessageError::ConversationNotFound {
@@ -201,7 +202,7 @@ async fn fetch_messages(
                 'record_id', reaction.record_id,
                 'sender', reaction.sender,
                 'reaction', reaction.reaction,
-                'created_at_ms', reaction.created_at_ms
+                'created_at', reaction.created_at_ms
               )
             )
             FROM (
@@ -219,7 +220,7 @@ async fn fetch_messages(
             SELECT json_group_array(
               json_object(
                 'text', edit.text,
-                'created_at_ms', edit.created_at_ms
+                'created_at', edit.created_at_ms
               )
             )
             FROM (
@@ -236,7 +237,7 @@ async fn fetch_messages(
               json_object(
                 'source_kind', attachment.source_kind,
                 'source', attachment.source,
-                'created_at_ms', attachment.created_at_ms
+                'created_at', attachment.created_at_ms
               )
             )
             FROM (
@@ -288,7 +289,7 @@ async fn fetch_messages(
                 sender: row.sender,
                 recipient: row.recipient,
                 text: row.text,
-                created_at_ms: row.created_at_ms,
+                created_at: row.created_at_ms.map(Timestamp::from),
                 reactions: row.reactions.0,
                 edit_history: row.edit_history.0,
                 attachments: row.attachments.0,
@@ -348,7 +349,7 @@ pub async fn get_message_page_by_conversation(
 
     let mut messages = fetch_messages(
         archive,
-        &account_id,
+        account,
         conversation_id,
         limit as i64,
         offset as i64,

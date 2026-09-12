@@ -1,12 +1,13 @@
 use crate::{
     archive::model::Archive, error::ExportReaderError, export_reader::account::models::Account,
+    types::Timestamp,
 };
 
-#[derive(Debug, Clone, sqlx::FromRow)]
+#[derive(Debug, Clone)]
 pub struct ConversationInfo {
     id: String,
     latest_message_text: Option<String>,
-    latest_message_at_ms: Option<i64>,
+    latest_message_at: Option<Timestamp>,
     message_count: i64,
 }
 
@@ -19,13 +20,21 @@ impl ConversationInfo {
         self.latest_message_text.as_deref()
     }
 
-    pub fn latest_message_at_ms(&self) -> Option<i64> {
-        self.latest_message_at_ms
+    pub fn latest_message_at(&self) -> Option<Timestamp> {
+        self.latest_message_at
     }
 
     pub fn message_count(&self) -> i64 {
         self.message_count
     }
+}
+
+#[derive(sqlx::FromRow)]
+struct ConversationQueryRow {
+    id: String,
+    latest_message_text: Option<String>,
+    latest_message_at_ms: Option<i64>,
+    message_count: i64,
 }
 
 pub async fn get_conversations_by_account(
@@ -34,7 +43,7 @@ pub async fn get_conversations_by_account(
 ) -> Result<Vec<ConversationInfo>, ExportReaderError> {
     let account_id = account.id().to_string();
 
-    let conversations = sqlx::query_as::<_, ConversationInfo>(
+    let rows = sqlx::query_as::<_, ConversationQueryRow>(
         r#"
         WITH ranked_messages AS (
           SELECT
@@ -69,5 +78,13 @@ pub async fn get_conversations_by_account(
     .fetch_all(archive.pool())
     .await?;
 
-    Ok(conversations)
+    Ok(rows
+        .into_iter()
+        .map(|row| ConversationInfo {
+            id: row.id,
+            latest_message_text: row.latest_message_text,
+            latest_message_at: row.latest_message_at_ms.map(Timestamp::from),
+            message_count: row.message_count,
+        })
+        .collect())
 }

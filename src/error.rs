@@ -121,3 +121,12 @@ pub enum MessageError {
         conversation_id: String,
     },
 }
+
+#[derive(Debug, Error)]
+pub enum TimestampError {
+    #[error("Unix timestamp `{milliseconds}` milliseconds is outside Chrono's supported range")]
+    OutOfRange { milliseconds: i64 },
+
+    #[error("invalid timestamp format: {0}")]
+    InvalidFormat(#[from] chrono::format::ParseError),
+}
