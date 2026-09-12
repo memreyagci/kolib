@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use sqlx::types::Json;
 
@@ -71,8 +71,21 @@ impl Attachment {
         &self.source
     }
 
-    pub fn created_at_ms(&self) -> Option<i64> {
-        self.created_at_ms
+    pub fn full_path(&self, archive: &Archive, account: &Account) -> Option<PathBuf> {
+        if self.source_kind != AttachmentSourceKind::File {
+            return None;
+        }
+
+        Some(
+            archive
+                .dataset_directory(account, DatasetType::Messages)
+                .join("media")
+                .join(&self.source),
+        )
+    }
+
+    pub fn created_at(&self) -> Option<Timestamp> {
+        self.created_at
     }
 }
 
@@ -180,11 +193,13 @@ pub async fn get_messages_by_conversation(
 
 async fn fetch_messages(
     archive: &Archive,
-    account_id: &str,
+    account: &Account,
     conversation_id: &str,
     limit: i64,
     offset: i64,
 ) -> Result<Vec<Message>, ExportReaderError> {
+    let account_id = account.id().to_string();
+
     let rows = sqlx::query_as::<_, MessageQueryRow>(
         r#"
         SELECT
