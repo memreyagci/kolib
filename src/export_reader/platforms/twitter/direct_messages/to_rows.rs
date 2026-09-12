@@ -98,11 +98,11 @@ pub(crate) fn to_rows(
 
             for (ordinal, attachment) in attachments.into_iter().enumerate() {
                 match attachment {
-                    AttachmentSource::File(file_rel_path) => {
+                    AttachmentSource::File(filename) => {
                         rows.file_attachments.push(FileAttachmentRow {
                             main_id: main_id.clone(),
                             ordinal: ordinal as i64,
-                            file_rel_path,
+                            filename,
                             created_at_ms: None,
                         });
                     }
@@ -215,7 +215,7 @@ mod tests {
             .expect("the message's local attachment should exist");
         assert_eq!(file_attachment.ordinal, 0);
         assert_eq!(
-            file_attachment.file_rel_path,
+            file_attachment.filename,
             "8000000000000000008-everything-test-video.mp4"
         );
 

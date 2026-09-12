@@ -33,7 +33,7 @@ pub(crate) struct EditRow {
 pub(crate) struct FileAttachmentRow {
     pub(crate) main_id: String,
     pub(crate) ordinal: i64,
-    pub(crate) file_rel_path: String,
+    pub(crate) filename: String,
     pub(crate) created_at_ms: Option<i64>,
 }
 

@@ -64,7 +64,7 @@ CREATE UNIQUE INDEX twitter_message_identity ON messages (account_id, conversati
 WHERE
   platform = 'twitter';
 
-CREATE TABLE messages_reactions (
+CREATE TABLE message_reactions (
   main_id TEXT NOT NULL,
   ordinal INTEGER NOT NULL,
   -- Stable record identity, supplied by the platform when available or
@@ -77,11 +77,11 @@ CREATE TABLE messages_reactions (
   FOREIGN KEY (main_id) REFERENCES messages (id) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX message_reaction_record_identity ON messages_reactions (main_id, record_id)
+CREATE UNIQUE INDEX message_reaction_record_identity ON message_reactions (main_id, record_id)
 WHERE
   record_id IS NOT NULL;
 
-CREATE TABLE messages_edits (
+CREATE TABLE message_edits (
   main_id TEXT NOT NULL,
   ordinal INTEGER NOT NULL,
   text TEXT NOT NULL,
@@ -90,16 +90,16 @@ CREATE TABLE messages_edits (
   FOREIGN KEY (main_id) REFERENCES messages (id) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
-CREATE TABLE messages_file_attachments (
+CREATE TABLE message_file_attachments (
   main_id TEXT NOT NULL,
   ordinal INTEGER NOT NULL,
-  file_rel_path TEXT NOT NULL,
+  filename TEXT NOT NULL,
   created_at_ms INTEGER,
   PRIMARY KEY (main_id, ordinal),
   FOREIGN KEY (main_id) REFERENCES messages (id) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
-CREATE TABLE messages_link_attachments (
+CREATE TABLE message_link_attachments (
   main_id TEXT NOT NULL,
   ordinal INTEGER NOT NULL,
   url TEXT NOT NULL,
@@ -134,7 +134,7 @@ FROM
   twitter_direct_messages;
 
 INSERT INTO
-  messages_reactions (
+  message_reactions (
     main_id,
     ordinal,
     record_id,
@@ -156,7 +156,7 @@ FROM
   json_each(message.reactions) AS reaction;
 
 INSERT INTO
-  messages_edits (main_id, ordinal, text, created_at_ms)
+  message_edits (main_id, ordinal, text, created_at_ms)
 SELECT
   message.id,
   CAST(edit.key AS INTEGER),
@@ -169,7 +169,7 @@ FROM
   json_each(message.edit_history) AS edit;
 
 INSERT INTO
-  messages_file_attachments (main_id, ordinal, file_rel_path)
+  message_file_attachments (main_id, ordinal, filename)
 SELECT
   message_id,
   ordinal,
@@ -180,7 +180,7 @@ WHERE
   external = 0;
 
 INSERT INTO
-  messages_link_attachments (main_id, ordinal, url)
+  message_link_attachments (main_id, ordinal, url)
 SELECT
   message_id,
   ordinal,
