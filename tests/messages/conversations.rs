@@ -2,7 +2,7 @@ use kolib::{
     export_reader::{
         account::models::Account, datasets::messages::get_conversations_by_account, import,
     },
-    types::Platform,
+    types::{Platform, Timestamp},
 };
 
 use crate::common::{create_account_in_temp_dir, twitter_dm_fixture};
@@ -25,7 +25,10 @@ async fn returns_conversations_by_account() {
 
     assert_eq!(conv_1.id(), "1234567891234567890-5555555555555555555");
     assert_eq!(conv_1.message_count(), 4);
-    assert_eq!(conv_1.latest_message_at_ms(), Some(1_788_213_960_008));
+    assert_eq!(
+        conv_1.latest_message_at(),
+        Some(Timestamp::from_milliseconds(1_788_213_960_008))
+    );
     assert_eq!(
         conv_1.latest_message_text(),
         Some(
@@ -36,7 +39,10 @@ async fn returns_conversations_by_account() {
     let conv_2 = &conversations[1];
     assert_eq!(conv_2.id(), "1234567891234567890-9876543219876543210");
     assert_eq!(conv_2.message_count(), 8);
-    assert_eq!(conv_2.latest_message_at_ms(), Some(1_788_213_687_041));
+    assert_eq!(
+        conv_2.latest_message_at(),
+        Some(Timestamp::from_milliseconds(1_788_213_687_041))
+    );
     assert_eq!(
         conv_2.latest_message_text(),
         Some("This message has multiple reactions, including a reaction from its sender.")

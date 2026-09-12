@@ -10,7 +10,7 @@ use kolib::{
         import,
         pagination::{PageRequest, SortOrder},
     },
-    types::Platform,
+    types::{Platform, Timestamp},
 };
 use uuid::Uuid;
 
@@ -55,7 +55,10 @@ async fn returns_messages_by_conversation() {
         plain.text(),
         Some("This message establishes a second conversation with the sample archive owner.")
     );
-    assert_eq!(plain.created_at_ms(), Some(1_788_213_780_005));
+    assert_eq!(
+        plain.created_at(),
+        Some(Timestamp::from_milliseconds(1_788_213_780_005))
+    );
     assert!(plain.reactions().is_empty());
     assert!(plain.edit_history().is_empty());
     assert!(plain.attachments().is_empty());
@@ -67,8 +70,8 @@ async fn returns_messages_by_conversation() {
         "This is the only edit-history entry for this message."
     );
     assert_eq!(
-        single_edit.edit_history()[0].created_at_ms(),
-        Some(1_788_213_840_000)
+        single_edit.edit_history()[0].created_at(),
+        Some(Timestamp::from_milliseconds(1_788_213_840_000))
     );
 
     let multiple_edits = &messages[2];
@@ -94,8 +97,8 @@ async fn returns_messages_by_conversation() {
     );
     assert_eq!(everything.reactions()[0].reaction(), "😮");
     assert_eq!(
-        everything.reactions()[0].created_at_ms(),
-        Some(1_788_214_020_001)
+        everything.reactions()[0].created_at(),
+        Some(Timestamp::from_milliseconds(1_788_214_020_001))
     );
     assert_eq!(
         everything.reactions()[1].record_id(),
@@ -113,16 +116,16 @@ async fn returns_messages_by_conversation() {
         "This is the first edit-history entry for the message that has everything."
     );
     assert_eq!(
-        everything.edit_history()[0].created_at_ms(),
-        Some(1_788_214_020_000)
+        everything.edit_history()[0].created_at(),
+        Some(Timestamp::from_milliseconds(1_788_214_020_000))
     );
     assert_eq!(
         everything.edit_history()[1].text(),
         "This is the second edit-history entry for the message that has everything."
     );
     assert_eq!(
-        everything.edit_history()[1].created_at_ms(),
-        Some(1_788_214_080_000)
+        everything.edit_history()[1].created_at(),
+        Some(Timestamp::from_milliseconds(1_788_214_080_000))
     );
 
     assert_eq!(everything.attachments().len(), 2);
@@ -134,7 +137,18 @@ async fn returns_messages_by_conversation() {
         everything.attachments()[0].source(),
         "8000000000000000008-everything-test-video.mp4"
     );
-    assert_eq!(everything.attachments()[0].created_at_ms(), None);
+    let expected_file_path = archive
+        .folder()
+        .join("accounts")
+        .join(account.id().to_string())
+        .join("twitter-direct-messages")
+        .join("media")
+        .join("8000000000000000008-everything-test-video.mp4");
+    assert_eq!(
+        everything.attachments()[0].full_path(&archive, &account),
+        Some(expected_file_path)
+    );
+    assert_eq!(everything.attachments()[0].created_at(), None);
     assert_eq!(
         everything.attachments()[1].source_kind(),
         AttachmentSourceKind::Url
@@ -142,6 +156,10 @@ async fn returns_messages_by_conversation() {
     assert_eq!(
         everything.attachments()[1].source(),
         "https://youtu.be/dQw4w9WgXcQ"
+    );
+    assert_eq!(
+        everything.attachments()[1].full_path(&archive, &account),
+        None
     );
 }
 
