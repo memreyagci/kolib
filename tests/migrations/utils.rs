@@ -40,14 +40,17 @@ pub(super) async fn migration_versions(archive: &Archive) -> Vec<i64> {
         .expect("reading migration versions should succeed")
 }
 
-pub(super) async fn twitter_dm_row_counts(archive: &Archive) -> (i64, i64, i64, i64) {
+pub(super) async fn message_row_counts(archive: &Archive) -> (i64, i64, i64, i64) {
     sqlx::query_as::<_, (i64, i64, i64, i64)>(
         r#"
         SELECT
-            (SELECT COUNT(*) FROM twitter_direct_messages),
-            (SELECT COUNT(*) FROM twitter_dm_reactions),
-            (SELECT COUNT(*) FROM twitter_dm_edit_history),
-            (SELECT COUNT(*) FROM twitter_dm_attachments)
+            (SELECT COUNT(*) FROM messages),
+            (SELECT COUNT(*) FROM message_reactions),
+            (SELECT COUNT(*) FROM message_edits),
+            (
+                (SELECT COUNT(*) FROM message_file_attachments)
+                + (SELECT COUNT(*) FROM message_link_attachments)
+            )
         "#,
     )
     .fetch_one(archive.pool())

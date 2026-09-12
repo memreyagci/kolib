@@ -3,15 +3,18 @@ use std::str::FromStr;
 use kolib::{
     archive::model::Archive,
     export_reader::{
-        account::models::{Account, AccountId, DatasetType},
-        platforms::twitter::direct_messages::{
-            AttachmentSourceKind, get_conversations_by_account, get_messages_by_conversation,
+        account::models::{Account, AccountId},
+        datasets::{
+            DatasetType,
+            messages::{
+                AttachmentSourceKind, get_conversations_by_account, get_messages_by_conversation,
+            },
         },
     },
     types::Platform,
 };
 
-use crate::utils::{copy_fixture_to_temp, migration_versions, twitter_dm_row_counts};
+use crate::utils::{copy_fixture_to_temp, message_row_counts, migration_versions};
 
 const ACCOUNT_ID: &str = "01a072e0-a4d6-744c-a632-39857ae991ff";
 const COMPREHENSIVE_MESSAGE_CONVERSATION_ID: &str = "1234567891234567890-5555555555555555555";
@@ -26,7 +29,7 @@ async fn migrates_v1_archive_to_latest() {
 
     assert_eq!(migration_versions(&archive).await, [1, 2]);
 
-    let (messages, reactions, edits, attachments) = twitter_dm_row_counts(&archive).await;
+    let (messages, reactions, edits, attachments) = message_row_counts(&archive).await;
     assert_eq!(messages, 12);
     assert_eq!(reactions, 5);
     assert_eq!(edits, 5);
@@ -40,24 +43,24 @@ async fn migrates_v1_archive_to_latest() {
     .expect("checking for the deprecated migration table should succeed");
     assert_eq!(deprecated_migration_table_count, 0);
 
-    let (created_at, storage_type) = sqlx::query_as::<_, (String, String)>(
+    let (created_at_ms, storage_type) = sqlx::query_as::<_, (i64, String)>(
         r#"
-        SELECT created_at, typeof(created_at)
-        FROM twitter_direct_messages
-        WHERE message_create_id = '1000000000000000001'
+        SELECT created_at_ms, typeof(created_at_ms)
+        FROM messages
+        WHERE record_id = '1000000000000000001'
         "#,
     )
     .fetch_one(archive.pool())
     .await
     .expect("reading a migrated message timestamp should succeed");
-    assert_eq!(created_at, "2026-08-31T21:58:51.197Z");
-    assert_eq!(storage_type, "text");
+    assert_eq!(created_at_ms, 1_788_213_531_197);
+    assert_eq!(storage_type, "integer");
 
-    let reactions = sqlx::query_as::<_, (String, String, String)>(
+    let reactions = sqlx::query_as::<_, (String, String, i64)>(
         r#"
-        SELECT event_id, reaction_key, created_at
-        FROM twitter_dm_reactions
-        ORDER BY event_id
+        SELECT record_id, reaction, created_at_ms
+        FROM message_reactions
+        ORDER BY record_id
         "#,
     )
     .fetch_all(archive.pool())
@@ -68,42 +71,42 @@ async fn migrates_v1_archive_to_latest() {
         [
             (
                 "3000000000000000001".to_owned(),
-                "agree".to_owned(),
-                "2026-08-31T22:01:00.001Z".to_owned(),
+                "👍".to_owned(),
+                1_788_213_660_001,
             ),
             (
                 "4000000000000000001".to_owned(),
-                "funny".to_owned(),
-                "2026-08-31T22:02:00.001Z".to_owned(),
+                "😂".to_owned(),
+                1_788_213_720_001,
             ),
             (
                 "4000000000000000002".to_owned(),
-                "like".to_owned(),
-                "2026-08-31T22:02:01.002Z".to_owned(),
+                "❤️".to_owned(),
+                1_788_213_721_002,
             ),
             (
                 "8000000000000000001".to_owned(),
                 "surprised".to_owned(),
-                "2026-08-31T22:07:00.001Z".to_owned(),
+                1_788_214_020_001,
             ),
             (
                 "8000000000000000002".to_owned(),
-                "like".to_owned(),
-                "2026-08-31T22:07:01.002Z".to_owned(),
+                "❤️".to_owned(),
+                1_788_214_021_002,
             ),
         ]
     );
 
-    let edits = sqlx::query_as::<_, (String, i64, String, String)>(
+    let edits = sqlx::query_as::<_, (String, i64, String, i64)>(
         r#"
         SELECT
-            message.message_create_id,
+            message.record_id,
             edit.ordinal,
-            edit.edited_text,
-            edit.created_at_sec
-        FROM twitter_dm_edit_history AS edit
-        JOIN twitter_direct_messages AS message ON message.id = edit.main_id
-        ORDER BY message.message_create_id, edit.ordinal
+            edit.text,
+            edit.created_at_ms
+        FROM message_edits AS edit
+        JOIN messages AS message ON message.id = edit.main_id
+        ORDER BY message.record_id, edit.ordinal
         "#,
     )
     .fetch_all(archive.pool())
@@ -116,21 +119,27 @@ async fn migrates_v1_archive_to_latest() {
             "6000000000000000006".to_owned(),
             0,
             "This is the only edit-history entry for this message.".to_owned(),
-            "1788213840".to_owned(),
+            1_788_213_840_000,
         ))
     );
-    assert_eq!(edits.last().map(|edit| edit.3.as_str()), Some("1788214080"));
+    assert_eq!(edits.last().map(|edit| edit.3), Some(1_788_214_080_000));
 
     let attachments = sqlx::query_as::<_, (String, i64, String, String)>(
         r#"
         SELECT
-            message.message_create_id,
+            message.record_id,
             attachment.ordinal,
-            attachment.source_kind,
+            attachment.kind,
             attachment.source
-        FROM twitter_dm_attachments AS attachment
-        JOIN twitter_direct_messages AS message ON message.id = attachment.main_id
-        ORDER BY message.message_create_id, attachment.ordinal
+        FROM (
+            SELECT main_id, ordinal, 'file' AS kind, filename AS source
+            FROM message_file_attachments
+            UNION ALL
+            SELECT main_id, ordinal, 'url' AS kind, url AS source
+            FROM message_link_attachments
+        ) AS attachment
+        JOIN messages AS message ON message.id = attachment.main_id
+        ORDER BY message.record_id, attachment.ordinal
         "#,
     )
     .fetch_all(archive.pool())
@@ -169,10 +178,7 @@ async fn migrates_v1_archive_to_latest() {
         .expect("the migrated account's datasets should remain readable");
     assert_eq!(datasets.len(), 1);
     assert_eq!(datasets[0].account_id(), account.id());
-    assert_eq!(
-        datasets[0].dataset_type(),
-        &DatasetType::TwitterDirectMessages
-    );
+    assert_eq!(datasets[0].dataset_type(), &DatasetType::Messages);
 
     let migrated_dataset_path = archive
         .folder()
@@ -224,7 +230,7 @@ async fn migrates_v1_archive_to_latest() {
             .expect("migrated messages should remain readable");
     let comprehensive_message = messages
         .iter()
-        .find(|message| message.id() == "8000000000000000008")
+        .find(|message| message.record_id() == "8000000000000000008")
         .expect("the fixture's comprehensive message should survive migration");
     assert_eq!(comprehensive_message.reactions().len(), 2);
     assert_eq!(comprehensive_message.edit_history().len(), 2);
@@ -253,7 +259,7 @@ async fn reopening_migrated_v1_archive_does_not_reapply_migration() {
         .expect("reopening the migrated archive should succeed");
     assert_eq!(migration_versions(&reopened).await, [1, 2]);
 
-    let (messages, reactions, edits, attachments) = twitter_dm_row_counts(&reopened).await;
+    let (messages, reactions, edits, attachments) = message_row_counts(&reopened).await;
     assert_eq!(messages, 12);
     assert_eq!(reactions, 5);
     assert_eq!(edits, 5);

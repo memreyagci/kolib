@@ -2,7 +2,7 @@ use std::fs;
 
 use kolib::{
     error::ExportReaderError,
-    export_reader::{account::models::DatasetType, platforms::twitter::direct_messages::import},
+    export_reader::{datasets::DatasetType, import},
     types::Platform,
 };
 
@@ -23,10 +23,7 @@ async fn imports_comprehensive_export() {
         .expect("getting the imported account's datasets should succeed");
     assert_eq!(datasets.len(), 1);
     assert_eq!(datasets[0].account_id(), account.id());
-    assert_eq!(
-        datasets[0].dataset_type(),
-        &DatasetType::TwitterDirectMessages
-    );
+    assert_eq!(datasets[0].dataset_type(), &DatasetType::Messages);
 
     let imported_dataset_path = archive
         .folder()
@@ -98,6 +95,26 @@ async fn rejects_invalid_json() {
 }
 
 #[tokio::test]
+async fn rejects_unexpected_filename() {
+    let (_guard, _, archive, account) = create_account_in_temp_dir(Platform::Twitter).await;
+    let unexpected_file = archive.folder().join("messages.js");
+
+    fs::copy(twitter_dm_fixture("comprehensive"), &unexpected_file)
+        .expect("copying the fixture with an unexpected filename should succeed");
+
+    let result = import(&archive, &account, unexpected_file).await;
+
+    assert!(
+        matches!(
+            &result,
+            Err(ExportReaderError::UnexpectedFilename { expected, actual })
+                if expected == "direct-messages.js" && actual == "messages.js"
+        ),
+        "unexpected result: {result:?}"
+    );
+}
+
+#[tokio::test]
 async fn rejects_missing_required_fields() {
     let (_guard, _, archive, account) = create_account_in_temp_dir(Platform::Twitter).await;
 
@@ -152,10 +169,13 @@ async fn rolls_back_import_with_duplicate_message_ids() {
     let (messages, reactions, edits, attachments) = sqlx::query_as::<_, (i64, i64, i64, i64)>(
         r#"
             SELECT
-                (SELECT COUNT(*) FROM twitter_direct_messages),
-                (SELECT COUNT(*) FROM twitter_dm_reactions),
-                (SELECT COUNT(*) FROM twitter_dm_edit_history),
-                (SELECT COUNT(*) FROM twitter_dm_attachments)
+                (SELECT COUNT(*) FROM messages),
+                (SELECT COUNT(*) FROM message_reactions),
+                (SELECT COUNT(*) FROM message_edits),
+                (
+                    (SELECT COUNT(*) FROM message_file_attachments)
+                    + (SELECT COUNT(*) FROM message_link_attachments)
+                )
             "#,
     )
     .fetch_one(archive.pool())
@@ -166,4 +186,14 @@ async fn rolls_back_import_with_duplicate_message_ids() {
     assert_eq!(reactions, 0);
     assert_eq!(edits, 0);
     assert_eq!(attachments, 0);
+
+    assert!(
+        !archive
+            .folder()
+            .join("accounts")
+            .join(account.id().to_string())
+            .join("twitter-direct-messages")
+            .exists(),
+        "failed import unexpectedly left its dataset directory behind"
+    );
 }

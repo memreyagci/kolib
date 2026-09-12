@@ -1,7 +1,6 @@
 use kolib::{
     export_reader::{
-        account::models::Account,
-        platforms::twitter::direct_messages::{get_conversations_by_account, import},
+        account::models::Account, datasets::messages::get_conversations_by_account, import,
     },
     types::Platform,
 };
@@ -18,7 +17,7 @@ async fn returns_conversations_by_account() {
 
     let conversations = get_conversations_by_account(&archive, &account)
         .await
-        .expect("getting Twitter DM conversations should succeed");
+        .expect("getting message conversations should succeed");
 
     assert_eq!(conversations.len(), 2);
 
@@ -26,19 +25,21 @@ async fn returns_conversations_by_account() {
 
     assert_eq!(conv_1.id(), "1234567891234567890-5555555555555555555");
     assert_eq!(conv_1.message_count(), 4);
-    assert_eq!(conv_1.latest_message_at(), "2026-08-31T22:06:00.008Z");
+    assert_eq!(conv_1.latest_message_at_ms(), Some(1_788_213_960_008));
     assert_eq!(
         conv_1.latest_message_text(),
-        "This message has local and external attachments, multiple reactions including a self-reaction, and multiple edit-history entries. https://t.co/everythingmedia https://t.co/everythingurl"
+        Some(
+            "This message has local and external attachments, multiple reactions including a self-reaction, and multiple edit-history entries. https://t.co/everythingmedia https://t.co/everythingurl"
+        )
     );
 
     let conv_2 = &conversations[1];
     assert_eq!(conv_2.id(), "1234567891234567890-9876543219876543210");
     assert_eq!(conv_2.message_count(), 8);
-    assert_eq!(conv_2.latest_message_at(), "2026-08-31T22:01:27.041Z");
+    assert_eq!(conv_2.latest_message_at_ms(), Some(1_788_213_687_041));
     assert_eq!(
         conv_2.latest_message_text(),
-        "This message has multiple reactions, including a reaction from its sender."
+        Some("This message has multiple reactions, including a reaction from its sender.")
     );
 }
 
@@ -56,7 +57,7 @@ async fn does_not_return_another_accounts_conversations() {
 
     let conversations = get_conversations_by_account(&archive, &other_account)
         .await
-        .expect("getting Twitter DM conversations should succeed");
+        .expect("getting message conversations should succeed");
 
     assert!(conversations.is_empty());
 }

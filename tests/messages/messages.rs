@@ -1,17 +1,18 @@
-use std::num::NonZeroU32;
+use std::{num::NonZeroU32, str::FromStr};
 
 use kolib::{
-    error::{ExportReaderError, TwitterError},
+    error::{ExportReaderError, MessageError},
     export_reader::{
         account::models::Account,
-        pagination::{PageRequest, SortOrder},
-        platforms::twitter::direct_messages::{
+        datasets::messages::{
             AttachmentSourceKind, get_message_page_by_conversation, get_messages_by_conversation,
-            import,
         },
+        import,
+        pagination::{PageRequest, SortOrder},
     },
     types::Platform,
 };
+use uuid::Uuid;
 
 use crate::common::{create_account_in_temp_dir, twitter_dm_fixture};
 
@@ -27,13 +28,13 @@ async fn returns_messages_by_conversation() {
 
     let messages = get_messages_by_conversation(&archive, &account, CONVERSATION_ID)
         .await
-        .expect("getting Twitter DM messages should succeed");
+        .expect("getting messages should succeed");
 
     assert_eq!(messages.len(), 4);
     assert_eq!(
         messages
             .iter()
-            .map(|message| message.id())
+            .map(|message| message.record_id())
             .collect::<Vec<_>>(),
         [
             "5000000000000000005",
@@ -42,16 +43,19 @@ async fn returns_messages_by_conversation() {
             "8000000000000000008",
         ]
     );
+    assert!(messages.iter().all(|message| {
+        Uuid::from_str(message.id()).is_ok() && message.platform() == Platform::Twitter
+    }));
 
     let plain = &messages[0];
     assert_eq!(plain.conversation_id(), CONVERSATION_ID);
-    assert_eq!(plain.sender_id(), "5555555555555555555");
-    assert_eq!(plain.recipient_id(), "1234567891234567890");
+    assert_eq!(plain.sender(), "5555555555555555555");
+    assert_eq!(plain.recipient(), Some("1234567891234567890"));
     assert_eq!(
         plain.text(),
-        "This message establishes a second conversation with the sample archive owner."
+        Some("This message establishes a second conversation with the sample archive owner.")
     );
-    assert_eq!(plain.created_at(), "2026-08-31T22:03:00.005Z");
+    assert_eq!(plain.created_at_ms(), Some(1_788_213_780_005));
     assert!(plain.reactions().is_empty());
     assert!(plain.edit_history().is_empty());
     assert!(plain.attachments().is_empty());
@@ -59,46 +63,67 @@ async fn returns_messages_by_conversation() {
     let single_edit = &messages[1];
     assert_eq!(single_edit.edit_history().len(), 1);
     assert_eq!(
-        single_edit.edit_history()[0].edited_text(),
+        single_edit.edit_history()[0].text(),
         "This is the only edit-history entry for this message."
     );
-    assert_eq!(single_edit.edit_history()[0].created_at_sec(), "1788213840");
+    assert_eq!(
+        single_edit.edit_history()[0].created_at_ms(),
+        Some(1_788_213_840_000)
+    );
 
     let multiple_edits = &messages[2];
     assert_eq!(multiple_edits.edit_history().len(), 2);
     assert_eq!(
-        multiple_edits.edit_history()[0].edited_text(),
+        multiple_edits.edit_history()[0].text(),
         "This is the first edit-history entry for the multiple-edit message."
     );
     assert_eq!(
-        multiple_edits.edit_history()[1].edited_text(),
+        multiple_edits.edit_history()[1].text(),
         "This is the second edit-history entry for the multiple-edit message."
     );
 
     let everything = &messages[3];
     assert_eq!(everything.reactions().len(), 2);
-    assert_eq!(everything.reactions()[0].event_id(), "8000000000000000001");
-    assert_eq!(everything.reactions()[0].sender_id(), "5555555555555555555");
-    assert_eq!(everything.reactions()[0].reaction_key(), "😮");
     assert_eq!(
-        everything.reactions()[0].created_at(),
-        "2026-08-31T22:07:00.001Z"
+        everything.reactions()[0].record_id(),
+        Some("8000000000000000001")
     );
-    assert_eq!(everything.reactions()[1].event_id(), "8000000000000000002");
-    assert_eq!(everything.reactions()[1].sender_id(), "1234567891234567890");
-    assert_eq!(everything.reactions()[1].reaction_key(), "❤️");
+    assert_eq!(
+        everything.reactions()[0].sender(),
+        Some("5555555555555555555")
+    );
+    assert_eq!(everything.reactions()[0].reaction(), "😮");
+    assert_eq!(
+        everything.reactions()[0].created_at_ms(),
+        Some(1_788_214_020_001)
+    );
+    assert_eq!(
+        everything.reactions()[1].record_id(),
+        Some("8000000000000000002")
+    );
+    assert_eq!(
+        everything.reactions()[1].sender(),
+        Some("1234567891234567890")
+    );
+    assert_eq!(everything.reactions()[1].reaction(), "❤️");
 
     assert_eq!(everything.edit_history().len(), 2);
     assert_eq!(
-        everything.edit_history()[0].edited_text(),
+        everything.edit_history()[0].text(),
         "This is the first edit-history entry for the message that has everything."
     );
-    assert_eq!(everything.edit_history()[0].created_at_sec(), "1788214020");
     assert_eq!(
-        everything.edit_history()[1].edited_text(),
+        everything.edit_history()[0].created_at_ms(),
+        Some(1_788_214_020_000)
+    );
+    assert_eq!(
+        everything.edit_history()[1].text(),
         "This is the second edit-history entry for the message that has everything."
     );
-    assert_eq!(everything.edit_history()[1].created_at_sec(), "1788214080");
+    assert_eq!(
+        everything.edit_history()[1].created_at_ms(),
+        Some(1_788_214_080_000)
+    );
 
     assert_eq!(everything.attachments().len(), 2);
     assert_eq!(
@@ -109,6 +134,7 @@ async fn returns_messages_by_conversation() {
         everything.attachments()[0].source(),
         "8000000000000000008-everything-test-video.mp4"
     );
+    assert_eq!(everything.attachments()[0].created_at_ms(), None);
     assert_eq!(
         everything.attachments()[1].source_kind(),
         AttachmentSourceKind::Url
@@ -127,18 +153,16 @@ async fn paginates_messages_from_oldest_to_newest() {
         .await
         .expect("comprehensive Twitter DM import should succeed");
 
-    let first_page_index: u32 = 0;
-    let second_page_index: u32 = 1;
-    let page_size: NonZeroU32 = NonZeroU32::new(3).unwrap();
+    let page_size = NonZeroU32::new(3).unwrap();
 
     let first_page = get_message_page_by_conversation(
         &archive,
         &account,
         CONVERSATION_ID,
-        PageRequest::new(first_page_index, page_size),
+        PageRequest::new(0, page_size),
     )
     .await
-    .expect("getting the first Twitter DM page should succeed");
+    .expect("getting the first message page should succeed");
 
     assert_eq!(first_page.page_index(), 0);
     assert_eq!(first_page.page_size(), 3);
@@ -149,7 +173,7 @@ async fn paginates_messages_from_oldest_to_newest() {
         first_page
             .items()
             .iter()
-            .map(|message| message.id())
+            .map(|message| message.record_id())
             .collect::<Vec<_>>(),
         [
             "5000000000000000005",
@@ -162,10 +186,10 @@ async fn paginates_messages_from_oldest_to_newest() {
         &archive,
         &account,
         CONVERSATION_ID,
-        PageRequest::new(second_page_index, page_size),
+        PageRequest::new(1, page_size),
     )
     .await
-    .expect("getting the second Twitter DM page should succeed");
+    .expect("getting the second message page should succeed");
 
     assert_eq!(second_page.page_index(), 1);
     assert!(!second_page.has_next_page());
@@ -173,7 +197,7 @@ async fn paginates_messages_from_oldest_to_newest() {
         second_page
             .items()
             .iter()
-            .map(|message| message.id())
+            .map(|message| message.record_id())
             .collect::<Vec<_>>(),
         ["8000000000000000008"]
     );
@@ -187,24 +211,22 @@ async fn paginates_messages_from_newest_to_oldest() {
         .await
         .expect("comprehensive Twitter DM import should succeed");
 
-    let first_page_index: u32 = 0;
-    let second_page_index: u32 = 1;
-    let page_size: NonZeroU32 = NonZeroU32::new(3).unwrap();
+    let page_size = NonZeroU32::new(3).unwrap();
 
     let first_page = get_message_page_by_conversation(
         &archive,
         &account,
         CONVERSATION_ID,
-        PageRequest::new(first_page_index, page_size).with_order(SortOrder::NewestFirst),
+        PageRequest::new(0, page_size).with_order(SortOrder::NewestFirst),
     )
     .await
-    .expect("getting the first newest-first Twitter DM page should succeed");
+    .expect("getting the first newest-first message page should succeed");
 
     assert_eq!(
         first_page
             .items()
             .iter()
-            .map(|message| message.id())
+            .map(|message| message.record_id())
             .collect::<Vec<_>>(),
         [
             "8000000000000000008",
@@ -217,16 +239,16 @@ async fn paginates_messages_from_newest_to_oldest() {
         &archive,
         &account,
         CONVERSATION_ID,
-        PageRequest::new(second_page_index, page_size).with_order(SortOrder::NewestFirst),
+        PageRequest::new(1, page_size).with_order(SortOrder::NewestFirst),
     )
     .await
-    .expect("getting the second newest-first Twitter DM page should succeed");
+    .expect("getting the second newest-first message page should succeed");
 
     assert_eq!(
         second_page
             .items()
             .iter()
-            .map(|message| message.id())
+            .map(|message| message.record_id())
             .collect::<Vec<_>>(),
         ["5000000000000000005"]
     );
@@ -252,8 +274,8 @@ async fn returns_error_for_invalid_paginated_conversation() {
     assert!(
         matches!(
             &result,
-            Err(ExportReaderError::Twitter(
-                TwitterError::ConversationNotFound {
+            Err(ExportReaderError::Message(
+                MessageError::ConversationNotFound {
                     account_id,
                     conversation_id,
                 }
@@ -278,8 +300,8 @@ async fn returns_error_for_invalid_conversation() {
     assert!(
         matches!(
             &result,
-            Err(ExportReaderError::Twitter(
-                TwitterError::ConversationNotFound {
+            Err(ExportReaderError::Message(
+                MessageError::ConversationNotFound {
                     account_id,
                     conversation_id,
                 }
@@ -308,8 +330,8 @@ async fn returns_error_for_conversation_belonging_to_another_account() {
     assert!(
         matches!(
             &result,
-            Err(ExportReaderError::Twitter(
-                TwitterError::ConversationNotFound {
+            Err(ExportReaderError::Message(
+                MessageError::ConversationNotFound {
                     account_id,
                     conversation_id,
                 }
