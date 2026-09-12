@@ -43,6 +43,12 @@ pub enum ExportReaderError {
     #[error("regex error: {0}")]
     Regex(#[from] regex::Error),
 
+    #[error("date/time parse error: {0}")]
+    DateTime(#[from] chrono::ParseError),
+
+    #[error("integer parse error: {0}")]
+    ParseInt(#[from] ParseIntError),
+
     #[error("failed to deserialize export: {0}")]
     Serde(#[from] serde_json::Error),
 
