@@ -46,6 +46,8 @@ pub(crate) struct PreparedImport {
     pub(crate) media_files: Vec<PreparedMediaFile>,
 }
 
+/// This function is used to import an export file to the given account that is in the given archive.
+/// It automatically detects dataset type, copies necessary files, and returns a result accordingly.
 pub async fn import(
     archive: &Archive,
     account: &Account,
@@ -53,7 +55,9 @@ pub async fn import(
 ) -> Result<(), ExportReaderError> {
     let file_path = file_path.as_ref();
 
-    let prepared = match account.platform() {
+    // Matches account platform to their prepare_import function, which returns the rows the import
+    // the source file, and media files paths to be copied in PreparedImport.
+    let prepared: PreparedImport = match account.platform() {
         Platform::Twitter => platforms::twitter::prepare_import(account.id(), file_path)?,
         platform => {
             return Err(ExportReaderError::UnsupportedPlatform {
@@ -66,6 +70,8 @@ pub async fn import(
         return Ok(());
     }
 
+    // Initially, copy the media files to a .tmp dir inside archive, so it in case of database
+    // failure, they are removed. Otherwise, they are instantly moved.
     let staging_root = archive
         .folder()
         .join(".tmp")
@@ -95,6 +101,8 @@ pub async fn import(
         return Err(error);
     }
 
+    // In case a manual deletion of accounts and <account-id> dir occured.
+    fs::create_dir_all(archive.account_directory(account))?;
     let archive_dataset_directory =
         archive.dataset_directory(account, prepared.dataset.dataset_type());
 
@@ -114,6 +122,7 @@ pub async fn import(
     Ok(())
 }
 
+// Copies raw file and media files to a .tmp/ dir in archive.
 fn stage_files(
     prepared: &PreparedImport,
     staged_dataset_directory: &Path,
