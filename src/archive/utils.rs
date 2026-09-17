@@ -31,6 +31,14 @@ impl Archive {
     pub(super) async fn setup_db(archive: &Archive) -> Result<(), ArchiveError> {
         let migrations = Migration::get()?;
         let mut curr_ver = archive.db_version().await?;
+        let latest_supported_version = migrations.last().map_or(0, Migration::ver);
+
+        if curr_ver > latest_supported_version {
+            return Err(ArchiveError::UnsupportedVersion {
+                archive_version: curr_ver,
+                latest_supported_version,
+            });
+        }
 
         let mut tx = archive.pool().begin().await?;
 

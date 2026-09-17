@@ -16,6 +16,14 @@ pub enum ArchiveError {
     #[error("archive database `koli.db` was not found")]
     DatabaseNotFound,
 
+    #[error(
+        "archive version `{archive_version}` is newer than the latest supported version `{latest_supported_version}`: update kolib to open it"
+    )]
+    UnsupportedVersion {
+        archive_version: i64,
+        latest_supported_version: i64,
+    },
+
     #[error(transparent)]
     Migration(#[from] MigrationError),
 }
