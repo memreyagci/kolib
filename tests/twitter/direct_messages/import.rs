@@ -59,6 +59,36 @@ async fn imports_comprehensive_export() {
 }
 
 #[tokio::test]
+async fn rejects_import_when_dataset_already_exists() {
+    let (_guard, _, archive, account) = create_account_in_temp_dir(Platform::Twitter).await;
+    let fixture = twitter_dm_fixture("comprehensive");
+
+    import(&archive, &account, &fixture)
+        .await
+        .expect("initial Twitter DM import should succeed");
+
+    let result = import(&archive, &account, &fixture).await;
+    let expected_account_id = account.id().to_string();
+
+    assert!(
+        matches!(
+            &result,
+            Err(ExportReaderError::DatasetAlreadyExists {
+                account_id,
+                dataset_type,
+            }) if account_id == &expected_account_id && dataset_type == "messages"
+        ),
+        "unexpected result: {result:?}"
+    );
+
+    let message_count = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM messages")
+        .fetch_one(archive.pool())
+        .await
+        .expect("counting messages after the rejected import should succeed");
+    assert_eq!(message_count, 12);
+}
+
+#[tokio::test]
 async fn accepts_empty_export_without_creating_dataset_or_directory() {
     let (_guard, _, archive, account) = create_account_in_temp_dir(Platform::Twitter).await;
 

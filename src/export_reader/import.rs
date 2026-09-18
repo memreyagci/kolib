@@ -70,6 +70,31 @@ pub async fn import(
         return Ok(());
     }
 
+    let dataset_type = prepared.dataset.dataset_type();
+    let account_id = account.id().to_string();
+    let dataset_type_name = dataset_type.to_string();
+    let dataset_exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS (
+            SELECT 1
+            FROM account_datasets
+            WHERE account_id = ?
+              AND dataset_type = ?
+        )
+        "#,
+    )
+    .bind(&account_id)
+    .bind(&dataset_type_name)
+    .fetch_one(archive.pool())
+    .await?;
+
+    if dataset_exists {
+        return Err(ExportReaderError::DatasetAlreadyExists {
+            account_id,
+            dataset_type: dataset_type_name,
+        });
+    }
+
     // Initially, copy the media files to a .tmp dir inside archive, so it in case of database
     // failure, they are removed. Otherwise, they are instantly moved.
     let staging_root = archive
@@ -103,8 +128,7 @@ pub async fn import(
 
     // In case a manual deletion of accounts and <account-id> dir occured.
     fs::create_dir_all(archive.account_directory(account))?;
-    let archive_dataset_directory =
-        archive.dataset_directory(account, prepared.dataset.dataset_type());
+    let archive_dataset_directory = archive.dataset_directory(account, dataset_type);
 
     if let Err(error) = fs::rename(&staged_dataset_directory, &archive_dataset_directory) {
         let _ = transaction.rollback().await;

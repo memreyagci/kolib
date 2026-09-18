@@ -48,6 +48,14 @@ pub enum ExportReaderError {
     #[error("platform `{platform}` is not supported for imports")]
     UnsupportedPlatform { platform: String },
 
+    #[error(
+        "dataset `{dataset_type}` already exists for account `{account_id}`: merging and replacing datasets are not yet supported"
+    )]
+    DatasetAlreadyExists {
+        account_id: String,
+        dataset_type: String,
+    },
+
     #[error("database error: {0}")]
     Sqlx(#[from] sqlx::Error),
 
