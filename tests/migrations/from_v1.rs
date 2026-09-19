@@ -8,6 +8,7 @@ use kolib::{
             DatasetType,
             messages::{
                 AttachmentSourceKind, get_conversations_by_account, get_messages_by_conversation,
+                search_messages_by_conversation,
             },
         },
     },
@@ -243,6 +244,16 @@ async fn migrates_v1_archive_to_latest() {
         comprehensive_message.attachments()[1].source_kind(),
         AttachmentSourceKind::Url
     );
+
+    let search_hits = search_messages_by_conversation(
+        &archive,
+        &account,
+        COMPREHENSIVE_MESSAGE_CONVERSATION_ID,
+        "establish",
+    )
+    .await
+    .expect("searching migrated messages should succeed");
+    assert_eq!(search_hits.len(), 1);
 }
 
 #[tokio::test]
