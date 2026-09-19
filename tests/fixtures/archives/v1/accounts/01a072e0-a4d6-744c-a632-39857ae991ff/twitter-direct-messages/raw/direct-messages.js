@@ -198,7 +198,7 @@ window.YTD.direct_messages.part0 = [
             "editHistory": [
               {
                 "editedText": "This is the only edit-history entry for this message.",
-                "createdAtSec": "1788213840"
+                "createdAtSec": "1788213810"
               }
             ]
           }
@@ -216,11 +216,11 @@ window.YTD.direct_messages.part0 = [
             "editHistory": [
               {
                 "editedText": "This is the first edit-history entry for the multiple-edit message.",
-                "createdAtSec": "1788213900"
+                "createdAtSec": "1788213840"
               },
               {
                 "editedText": "This is the second edit-history entry for the multiple-edit message.",
-                "createdAtSec": "1788213960"
+                "createdAtSec": "1788213870"
               }
             ]
           }
@@ -264,11 +264,11 @@ window.YTD.direct_messages.part0 = [
             "editHistory": [
               {
                 "editedText": "This is the first edit-history entry for the message that has everything.",
-                "createdAtSec": "1788214020"
+                "createdAtSec": "1788213900"
               },
               {
                 "editedText": "This is the second edit-history entry for the message that has everything.",
-                "createdAtSec": "1788214080"
+                "createdAtSec": "1788213930"
               }
             ]
           }

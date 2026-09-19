@@ -120,10 +120,10 @@ async fn migrates_v1_archive_to_latest() {
             "6000000000000000006".to_owned(),
             0,
             "This is the only edit-history entry for this message.".to_owned(),
-            1_788_213_840_000,
+            1_788_213_810_000,
         ))
     );
-    assert_eq!(edits.last().map(|edit| edit.3), Some(1_788_214_080_000));
+    assert_eq!(edits.last().map(|edit| edit.3), Some(1_788_213_930_000));
 
     let attachments = sqlx::query_as::<_, (String, i64, String, String)>(
         r#"

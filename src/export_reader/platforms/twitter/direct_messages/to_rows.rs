@@ -204,7 +204,8 @@ mod tests {
             .filter(|edit| edit.main_id == message.id)
             .collect::<Vec<_>>();
         assert_eq!(edits.len(), 2);
-        assert_eq!(edits[0].created_at_ms, Some(1_788_214_020_000));
+        assert_eq!(edits[0].created_at_ms, Some(1_788_213_900_000));
+        assert_eq!(edits[1].created_at_ms, Some(1_788_213_930_000));
 
         let file_attachment = rows
             .file_attachments

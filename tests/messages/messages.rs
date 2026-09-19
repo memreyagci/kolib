@@ -71,7 +71,7 @@ async fn returns_messages_by_conversation() {
     );
     assert_eq!(
         single_edit.edit_history()[0].created_at(),
-        Some(Timestamp::from_milliseconds(1_788_213_840_000))
+        Some(Timestamp::from_milliseconds(1_788_213_810_000))
     );
 
     let multiple_edits = &messages[2];
@@ -81,8 +81,16 @@ async fn returns_messages_by_conversation() {
         "This is the first edit-history entry for the multiple-edit message."
     );
     assert_eq!(
+        multiple_edits.edit_history()[0].created_at(),
+        Some(Timestamp::from_milliseconds(1_788_213_840_000))
+    );
+    assert_eq!(
         multiple_edits.edit_history()[1].text(),
         "This is the second edit-history entry for the multiple-edit message."
+    );
+    assert_eq!(
+        multiple_edits.edit_history()[1].created_at(),
+        Some(Timestamp::from_milliseconds(1_788_213_870_000))
     );
 
     let everything = &messages[3];
@@ -117,7 +125,7 @@ async fn returns_messages_by_conversation() {
     );
     assert_eq!(
         everything.edit_history()[0].created_at(),
-        Some(Timestamp::from_milliseconds(1_788_214_020_000))
+        Some(Timestamp::from_milliseconds(1_788_213_900_000))
     );
     assert_eq!(
         everything.edit_history()[1].text(),
@@ -125,7 +133,7 @@ async fn returns_messages_by_conversation() {
     );
     assert_eq!(
         everything.edit_history()[1].created_at(),
-        Some(Timestamp::from_milliseconds(1_788_214_080_000))
+        Some(Timestamp::from_milliseconds(1_788_213_930_000))
     );
 
     assert_eq!(everything.attachments().len(), 2);
