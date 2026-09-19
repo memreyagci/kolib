@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n          message.id AS \"id!\",\n          message.conversation_id AS \"conversation_id!\",\n          message.sender AS \"sender!\",\n          message.text,\n          message.created_at_ms\n        FROM messages_fts\n        JOIN messages AS message\n          ON message.id = messages_fts.message_id\n        WHERE messages_fts MATCH ?\n          AND message.account_id = ?\n          AND message.conversation_id = ?\n        ORDER BY\n          message.created_at_ms,\n          message.record_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "conversation_id!",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "conversation_id"
+          }
+        }
+      },
+      {
+        "name": "sender!",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "sender"
+          }
+        }
+      },
+      {
+        "name": "text",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "text"
+          }
+        }
+      },
+      {
+        "name": "created_at_ms",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "created_at_ms"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "3c5f4f7b7c0dac326c90d02effaf3a9fac50acc9d1dc04877391ce648fe772c3"
+}
