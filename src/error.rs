@@ -136,6 +136,15 @@ pub enum MessageError {
         account_id: String,
         conversation_id: String,
     },
+
+    #[error("message `{message_id}` was not found for account `{account_id}`")]
+    NotFound {
+        account_id: String,
+        message_id: String,
+    },
+
+    #[error("message `{message_id}` is beyond the supported pagination range")]
+    PageIndexOutOfRange { message_id: String },
 }
 
 #[derive(Debug, Error)]
