@@ -3,7 +3,10 @@ use std::num::NonZeroU32;
 use crate::{
     archive::model::Archive,
     error::{ExportReaderError, MessageError},
-    export_reader::{account::models::Account, pagination::SortOrder},
+    export_reader::{
+        account::models::Account,
+        pagination::{Page, PageRequest, SortOrder},
+    },
     types::Timestamp,
 };
 
@@ -54,16 +57,54 @@ impl MessageLocation {
     }
 }
 
-pub async fn search_messages_by_conversation(
+pub async fn search_message_page_by_conversation(
     archive: &Archive,
     account: &Account,
     conversation_id: &str,
     query: &str,
-) -> Result<Vec<MessageSearchHit>, ExportReaderError> {
+    pagination: PageRequest,
+) -> Result<Page<MessageSearchHit>, ExportReaderError> {
     let Some(query) = word_prefix_query(query) else {
-        return Ok(Vec::new());
+        return Ok(Page::new(Vec::new(), pagination, 0));
     };
     let account_id = account.id().to_string();
+    let total_items = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) AS "total_items!: i64"
+        FROM messages_fts
+        JOIN messages AS message
+          ON message.id = messages_fts.message_id
+        WHERE messages_fts MATCH ?
+          AND message.account_id = ?
+          AND message.conversation_id = ?
+        "#,
+        query,
+        account_id,
+        conversation_id,
+    )
+    .fetch_one(archive.pool())
+    .await? as u64;
+
+    let page_index = u64::from(pagination.page_index());
+    let page_size = u64::from(pagination.page_size().get());
+    let skipped_items = page_index * page_size;
+
+    let (offset, limit) = match pagination.order() {
+        SortOrder::OldestFirst => {
+            let start = skipped_items.min(total_items);
+            let end = (start + page_size).min(total_items);
+
+            (start, end - start)
+        }
+        SortOrder::NewestFirst => {
+            let end = total_items.saturating_sub(skipped_items);
+            let start = end.saturating_sub(page_size);
+
+            (start, end - start)
+        }
+    };
+    let offset = offset as i64;
+    let limit = limit as i64;
 
     let rows = sqlx::query!(
         r#"
@@ -82,15 +123,19 @@ pub async fn search_messages_by_conversation(
         ORDER BY
           message.created_at_ms,
           message.record_id
+        LIMIT ?
+        OFFSET ?
         "#,
         query,
         account_id,
         conversation_id,
+        limit,
+        offset,
     )
     .fetch_all(archive.pool())
     .await?;
 
-    Ok(rows
+    let mut hits = rows
         .into_iter()
         .map(|row| MessageSearchHit {
             id: row.id,
@@ -99,7 +144,13 @@ pub async fn search_messages_by_conversation(
             text: row.text,
             created_at: row.created_at_ms.map(Timestamp::from),
         })
-        .collect())
+        .collect::<Vec<_>>();
+
+    if pagination.order() == SortOrder::NewestFirst {
+        hits.reverse();
+    }
+
+    Ok(Page::new(hits, pagination, total_items))
 }
 
 fn word_prefix_query(query: &str) -> Option<String> {

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{num::NonZeroU32, str::FromStr};
 
 use kolib::{
     archive::model::Archive,
@@ -8,9 +8,10 @@ use kolib::{
             DatasetType,
             messages::{
                 AttachmentSourceKind, get_conversations_by_account, get_messages_by_conversation,
-                search_messages_by_conversation,
+                search_message_page_by_conversation,
             },
         },
+        pagination::PageRequest,
     },
     types::Platform,
 };
@@ -245,15 +246,16 @@ async fn migrates_v1_archive_to_latest() {
         AttachmentSourceKind::Url
     );
 
-    let search_hits = search_messages_by_conversation(
+    let search_page = search_message_page_by_conversation(
         &archive,
         &account,
         COMPREHENSIVE_MESSAGE_CONVERSATION_ID,
         "establish",
+        PageRequest::new(0, NonZeroU32::new(20).unwrap()),
     )
     .await
     .expect("searching migrated messages should succeed");
-    assert_eq!(search_hits.len(), 1);
+    assert_eq!(search_page.total_items(), 1);
 }
 
 #[tokio::test]
