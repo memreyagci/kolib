@@ -56,7 +56,11 @@ pub async fn get_conversations_by_account(
             ) AS message_count,
             ROW_NUMBER() OVER (
               PARTITION BY conversation_id
-              ORDER BY created_at_ms IS NULL, created_at_ms DESC, record_id DESC
+              ORDER BY
+                created_at_ms IS NULL,
+                created_at_ms DESC,
+                record_id DESC,
+                id DESC
             ) AS message_rank
           FROM messages
           WHERE account_id = ?

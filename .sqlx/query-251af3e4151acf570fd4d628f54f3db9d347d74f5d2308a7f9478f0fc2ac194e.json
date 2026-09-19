@@ -1,0 +1,40 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        WITH positioned_messages AS (\n          SELECT\n            id,\n            conversation_id,\n            ROW_NUMBER() OVER (\n              PARTITION BY conversation_id\n              ORDER BY created_at_ms, record_id, id\n            ) - 1 AS oldest_index,\n            COUNT(*) OVER (\n              PARTITION BY conversation_id\n            ) AS total_items\n          FROM messages\n          WHERE account_id = ?\n        )\n        SELECT\n          conversation_id AS \"conversation_id!\",\n          oldest_index AS \"oldest_index!: i64\",\n          total_items AS \"total_items!: i64\"\n        FROM positioned_messages\n        WHERE id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "conversation_id!",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "conversation_id"
+          }
+        }
+      },
+      {
+        "name": "oldest_index!: i64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      },
+      {
+        "name": "total_items!: i64",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "251af3e4151acf570fd4d628f54f3db9d347d74f5d2308a7f9478f0fc2ac194e"
+}

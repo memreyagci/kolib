@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n          message.id AS \"id!\",\n          message.conversation_id AS \"conversation_id!\",\n          message.sender AS \"sender!\",\n          message.text,\n          message.created_at_ms\n        FROM messages_fts\n        JOIN messages AS message\n          ON message.id = messages_fts.message_id\n        WHERE messages_fts MATCH ?\n          AND message.account_id = ?\n          AND message.conversation_id = ?\n        ORDER BY\n          message.created_at_ms,\n          message.record_id\n        LIMIT ?\n        OFFSET ?\n        ",
+  "query": "\n        SELECT\n          message.id AS \"id!\",\n          message.conversation_id AS \"conversation_id!\",\n          message.sender AS \"sender!\",\n          message.text,\n          message.created_at_ms\n        FROM messages_fts\n        JOIN messages AS message\n          ON message.id = messages_fts.message_id\n        WHERE messages_fts MATCH ?\n          AND message.account_id = ?\n          AND message.conversation_id = ?\n        ORDER BY\n          message.created_at_ms,\n          message.record_id,\n          message.id\n        LIMIT ?\n        OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -70,5 +70,5 @@
       true
     ]
   },
-  "hash": "c3eb509c86aaed901df6e48aec3d2797f875418d30f36c58f76b2a18565bafe0"
+  "hash": "c2d0307d1991ef3548e1fe27a3fc4b11e099023d6e23ca57061a0af0cfba2a9f"
 }

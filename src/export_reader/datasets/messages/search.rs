@@ -122,7 +122,8 @@ pub async fn search_message_page_by_conversation(
           AND message.conversation_id = ?
         ORDER BY
           message.created_at_ms,
-          message.record_id
+          message.record_id,
+          message.id
         LIMIT ?
         OFFSET ?
         "#,
@@ -179,7 +180,7 @@ pub async fn locate_message(
             conversation_id,
             ROW_NUMBER() OVER (
               PARTITION BY conversation_id
-              ORDER BY created_at_ms, record_id
+              ORDER BY created_at_ms, record_id, id
             ) - 1 AS oldest_index,
             COUNT(*) OVER (
               PARTITION BY conversation_id

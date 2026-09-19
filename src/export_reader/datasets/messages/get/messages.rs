@@ -282,7 +282,8 @@ async fn fetch_messages(
           AND message.conversation_id = ?
         ORDER BY
           message.created_at_ms,
-          message.record_id
+          message.record_id,
+          message.id
         LIMIT ?
         OFFSET ?
         "#,
