@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n          message.id AS \"id!\",\n          message.conversation_id AS \"conversation_id!\",\n          message.sender AS \"sender!\",\n          message.text,\n          message.created_at_ms\n        FROM messages_fts\n        JOIN messages AS message\n          ON message.id = messages_fts.message_id\n        WHERE messages_fts MATCH ?\n          AND message.account_id = ?\n          AND message.conversation_id = ?\n        ORDER BY\n          message.created_at_ms,\n          message.record_id\n        ",
+  "query": "\n        SELECT\n          message.id AS \"id!\",\n          message.conversation_id AS \"conversation_id!\",\n          message.sender AS \"sender!\",\n          message.text,\n          message.created_at_ms\n        FROM messages_fts\n        JOIN messages AS message\n          ON message.id = messages_fts.message_id\n        WHERE messages_fts MATCH ?\n          AND message.account_id = ?\n          AND message.conversation_id = ?\n        ORDER BY\n          message.created_at_ms,\n          message.record_id\n        LIMIT ?\n        OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       }
     ],
     "parameters": {
-      "Right": 3
+      "Right": 5
     },
     "nullable": [
       false,
@@ -70,5 +70,5 @@
       true
     ]
   },
-  "hash": "3c5f4f7b7c0dac326c90d02effaf3a9fac50acc9d1dc04877391ce648fe772c3"
+  "hash": "c3eb509c86aaed901df6e48aec3d2797f875418d30f36c58f76b2a18565bafe0"
 }

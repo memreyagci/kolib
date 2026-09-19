@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT COUNT(*) AS \"total_items!: i64\"\n        FROM messages_fts\n        JOIN messages AS message\n          ON message.id = messages_fts.message_id\n        WHERE messages_fts MATCH ?\n          AND message.account_id = ?\n          AND message.conversation_id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "total_items!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "94fe4b7f3b340252de32b7dddf010f3548e28d39ad89fe4e5df5510a62fe6513"
+}
