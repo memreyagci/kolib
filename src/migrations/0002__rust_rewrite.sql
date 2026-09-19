@@ -248,3 +248,44 @@ VALUES
   (NEW.account_id, 'messages');
 
 END;
+
+-- Keep a full-text index of message text for word and word-prefix searches.
+CREATE VIRTUAL TABLE messages_fts USING fts5 (
+  message_id UNINDEXED,
+  text,
+  tokenize = 'unicode61'
+);
+
+-- Index messages that were copied from the v1 table earlier in this migration.
+INSERT INTO
+  messages_fts (message_id, text)
+SELECT
+  id,
+  text
+FROM
+  messages;
+
+CREATE TRIGGER messages_fts_after_insert AFTER INSERT ON messages BEGIN
+INSERT INTO
+  messages_fts (message_id, text)
+VALUES
+  (NEW.id, NEW.text);
+
+END;
+
+CREATE TRIGGER messages_fts_after_delete AFTER DELETE ON messages BEGIN
+DELETE FROM messages_fts
+WHERE
+  message_id = OLD.id;
+
+END;
+
+CREATE TRIGGER messages_fts_after_text_update AFTER
+UPDATE OF text ON messages BEGIN
+UPDATE messages_fts
+SET
+  text = NEW.text
+WHERE
+  message_id = OLD.id;
+
+END;
