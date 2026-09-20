@@ -4,9 +4,10 @@ use sqlx::types::Json;
 
 use crate::{
     archive::model::Archive,
-    error::{ExportReaderError, MessageError},
+    error::{ContactError, ExportReaderError, MessageError},
     export_reader::{
         account::models::Account,
+        contacts::models::{ContactId, ContactInfo},
         datasets::DatasetType,
         pagination::{Page, PageRequest, SortOrder},
     },
@@ -103,6 +104,7 @@ pub struct Message {
     conversation_id: String,
     record_id: String,
     sender: String,
+    sender_contact: Option<ContactInfo>,
     recipient: Option<String>,
     text: Option<String>,
     created_at: Option<Timestamp>,
@@ -130,6 +132,10 @@ impl Message {
 
     pub fn sender(&self) -> &str {
         &self.sender
+    }
+
+    pub fn sender_contact(&self) -> Option<&ContactInfo> {
+        self.sender_contact.as_ref()
     }
 
     pub fn recipient(&self) -> Option<&str> {
@@ -164,6 +170,9 @@ struct MessageQueryRow {
     conversation_id: String,
     record_id: String,
     sender: String,
+    sender_contact_id: Option<String>,
+    sender_contact_name: Option<String>,
+    sender_contact_is_me: Option<i64>,
     recipient: Option<String>,
     text: Option<String>,
     created_at_ms: Option<i64>,
@@ -208,6 +217,9 @@ async fn fetch_messages(
           message.conversation_id,
           message.record_id,
           message.sender,
+          sender_contact.id AS sender_contact_id,
+          sender_contact.name AS sender_contact_name,
+          sender_contact.is_me AS sender_contact_is_me,
           message.recipient,
           message.text,
           message.created_at_ms,
@@ -278,6 +290,12 @@ async fn fetch_messages(
             ) AS attachment
           ) AS attachments
         FROM messages AS message
+        LEFT JOIN message_contact_assignments AS sender_assignment
+          ON sender_assignment.account_id = message.account_id
+         AND sender_assignment.conversation_id = message.conversation_id
+         AND sender_assignment.participant_key = message.sender
+        LEFT JOIN contacts AS sender_contact
+          ON sender_contact.id = sender_assignment.contact_id
         WHERE message.account_id = ?
           AND message.conversation_id = ?
         ORDER BY
@@ -297,12 +315,27 @@ async fn fetch_messages(
 
     rows.into_iter()
         .map(|row| {
+            let sender_contact = match (
+                row.sender_contact_id,
+                row.sender_contact_name,
+                row.sender_contact_is_me,
+            ) {
+                (Some(id), Some(name), Some(is_me)) => Some(ContactInfo::new(
+                    ContactId::from_str(&id).map_err(ContactError::from)?,
+                    name,
+                    is_me != 0,
+                )),
+                (None, None, None) => None,
+                _ => return Err(ContactError::IncompleteMessageContact.into()),
+            };
+
             Ok(Message {
                 id: row.id,
                 platform: Platform::from_str(&row.platform)?,
                 conversation_id: row.conversation_id,
                 record_id: row.record_id,
                 sender: row.sender,
+                sender_contact,
                 recipient: row.recipient,
                 text: row.text,
                 created_at: row.created_at_ms.map(Timestamp::from),

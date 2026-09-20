@@ -83,6 +83,9 @@ pub enum ExportReaderError {
     #[error(transparent)]
     Message(#[from] MessageError),
 
+    #[error(transparent)]
+    Contact(#[from] ContactError),
+
     #[error("strum error: {0}")]
     Strum(#[from] strum::ParseError),
 }
@@ -136,6 +139,9 @@ pub enum ContactError {
         conversation_id: String,
         participant_key: String,
     },
+
+    #[error("message sender contact data is incomplete")]
+    IncompleteMessageContact,
 
     #[error("database error: {0}")]
     Sqlx(#[from] sqlx::Error),

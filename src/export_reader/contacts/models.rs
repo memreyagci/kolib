@@ -35,6 +35,31 @@ pub struct Contact {
     is_me: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContactInfo {
+    id: ContactId,
+    name: String,
+    is_me: bool,
+}
+
+impl ContactInfo {
+    pub(crate) fn new(id: ContactId, name: String, is_me: bool) -> Self {
+        Self { id, name, is_me }
+    }
+
+    pub fn id(&self) -> &ContactId {
+        &self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn is_me(&self) -> bool {
+        self.is_me
+    }
+}
+
 impl Contact {
     pub(super) fn new(id: ContactId, name: String, is_me: bool) -> Self {
         Self { id, name, is_me }

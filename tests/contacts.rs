@@ -1,8 +1,8 @@
 use kolib::{
-    archive::model::Archive,
     error::ContactError,
     export_reader::{
         contacts::{get_message_participant_contact, models::Contact},
+        datasets::messages::get_messages_by_conversation,
         import,
     },
     types::Platform,
@@ -17,8 +17,8 @@ const CONVERSATION_ID: &str = "1234567891234567890-9876543219876543210";
 const PARTICIPANT_KEY: &str = "9876543219876543210";
 
 #[tokio::test]
-async fn creates_and_reuses_builtin_me_contact() {
-    let (_guard, archive_path, archive) = create_archive_in_temp_dir().await;
+async fn creates_archive_with_builtin_me_contact() {
+    let (_guard, _, archive) = create_archive_in_temp_dir().await;
     let me = Contact::get_me(&archive)
         .await
         .expect("getting the built-in Me contact should succeed");
@@ -166,6 +166,20 @@ async fn assigns_reassigns_and_unassigns_message_participant() {
             .expect("the participant should be assigned");
     assert_eq!(assigned.id(), first.id());
 
+    let messages = get_messages_by_conversation(&archive, &account, CONVERSATION_ID)
+        .await
+        .expect("getting messages with embedded contacts should succeed");
+    let participant_messages = messages
+        .iter()
+        .filter(|message| message.sender() == PARTICIPANT_KEY)
+        .collect::<Vec<_>>();
+    assert!(!participant_messages.is_empty());
+    assert!(participant_messages.iter().all(|message| {
+        message.sender_contact().is_some_and(|contact| {
+            contact.id() == first.id() && contact.name() == "First" && !contact.is_me()
+        })
+    }));
+
     second
         .assign_message_participant(&archive, &account, CONVERSATION_ID, PARTICIPANT_KEY)
         .await
@@ -182,6 +196,20 @@ async fn assigns_reassigns_and_unassigns_message_participant() {
             .expect("the participant should remain assigned");
     assert_eq!(reassigned.id(), second.id());
 
+    let messages = get_messages_by_conversation(&archive, &account, CONVERSATION_ID)
+        .await
+        .expect("getting messages after reassignment should succeed");
+    assert!(
+        messages
+            .iter()
+            .filter(|message| message.sender() == PARTICIPANT_KEY)
+            .all(|message| {
+                message
+                    .sender_contact()
+                    .is_some_and(|contact| contact.id() == second.id())
+            })
+    );
+
     second
         .unassign_message_participant(&archive, &account, CONVERSATION_ID, PARTICIPANT_KEY)
         .await
@@ -191,6 +219,16 @@ async fn assigns_reassigns_and_unassigns_message_participant() {
             .await
             .expect("getting an unassigned participant's contact should succeed")
             .is_none()
+    );
+
+    let messages = get_messages_by_conversation(&archive, &account, CONVERSATION_ID)
+        .await
+        .expect("getting messages after unassignment should succeed");
+    assert!(
+        messages
+            .iter()
+            .filter(|message| message.sender() == PARTICIPANT_KEY)
+            .all(|message| message.sender_contact().is_none())
     );
 }
 
