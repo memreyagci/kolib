@@ -244,6 +244,45 @@ CREATE TABLE message_contact_assignments (
   FOREIGN KEY (contact_id) REFERENCES contacts (id) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
+CREATE TRIGGER message_contacts_validate_sender_on_insert BEFORE INSERT ON message_contact_assignments WHEN NOT EXISTS (
+  SELECT
+    1
+  FROM
+    messages
+  WHERE
+    account_id = NEW.account_id
+    AND conversation_id = NEW.conversation_id
+    AND sender = NEW.participant_key
+) BEGIN
+SELECT
+  RAISE (
+    ABORT,
+    'message contact assignment participant must be an existing sender in the conversation'
+  );
+
+END;
+
+CREATE TRIGGER message_contacts_validate_sender_on_update BEFORE
+UPDATE OF account_id,
+conversation_id,
+participant_key ON message_contact_assignments WHEN NOT EXISTS (
+  SELECT
+    1
+  FROM
+    messages
+  WHERE
+    account_id = NEW.account_id
+    AND conversation_id = NEW.conversation_id
+    AND sender = NEW.participant_key
+) BEGIN
+SELECT
+  RAISE (
+    ABORT,
+    'message contact assignment participant must be an existing sender in the conversation'
+  );
+
+END;
+
 CREATE TRIGGER message_contacts_delete_with_dataset AFTER DELETE ON account_datasets WHEN OLD.dataset_type = 'messages' BEGIN
 DELETE FROM message_contact_assignments
 WHERE
