@@ -15,7 +15,7 @@ const MIGRATIONS: &[(&str, &str, [u8; 32])] = &[
     (
         "0002__rust_rewrite.sql",
         include_str!("./migrations/0002__rust_rewrite.sql"),
-        hex!("4780b085f71a4f7dcc248066d7fbbc358becf111c0e514b283fa7d2e943351d1"),
+        hex!("a27f89c5d70e1233583a5ae44ddb6729ebe30988f198a2976f8f534ad0a8ef5b"),
     ),
 ];
 

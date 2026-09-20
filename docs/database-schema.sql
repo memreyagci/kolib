@@ -100,6 +100,19 @@ CREATE UNIQUE INDEX contacts_single_me ON contacts (is_me)
 WHERE
   is_me = 1;
 
+CREATE TRIGGER contacts_prevent_me_delete BEFORE DELETE ON contacts WHEN OLD.is_me = 1 BEGIN
+SELECT
+  RAISE (ABORT, 'the built-in Me contact cannot be deleted');
+
+END;
+
+CREATE TRIGGER contacts_prevent_me_update BEFORE
+UPDATE ON contacts WHEN OLD.is_me = 1 BEGIN
+SELECT
+  RAISE (ABORT, 'the built-in Me contact cannot be modified');
+
+END;
+
 CREATE TABLE message_contact_assignments (
   account_id TEXT NOT NULL,
   conversation_id TEXT NOT NULL,
