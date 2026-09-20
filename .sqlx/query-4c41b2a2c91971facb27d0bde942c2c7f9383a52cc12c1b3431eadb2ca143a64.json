@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM contacts WHERE id = ? AND is_me = 0",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "4c41b2a2c91971facb27d0bde942c2c7f9383a52cc12c1b3431eadb2ca143a64"
+}

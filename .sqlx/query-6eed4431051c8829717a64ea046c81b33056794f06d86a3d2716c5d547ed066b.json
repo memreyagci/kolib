@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO message_contact_assignments (\n              account_id,\n              conversation_id,\n              participant_key,\n              contact_id\n            )\n            VALUES (?, ?, ?, ?)\n            ON CONFLICT (account_id, conversation_id, participant_key)\n            DO UPDATE SET contact_id = excluded.contact_id\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "6eed4431051c8829717a64ea046c81b33056794f06d86a3d2716c5d547ed066b"
+}

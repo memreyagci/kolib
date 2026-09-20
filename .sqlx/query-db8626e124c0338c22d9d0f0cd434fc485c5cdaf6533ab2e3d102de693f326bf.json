@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT contact.id, contact.name, contact.is_me\n        FROM message_contact_assignments AS assignment\n        JOIN contacts AS contact\n          ON contact.id = assignment.contact_id\n        WHERE assignment.account_id = ?\n          AND assignment.conversation_id = ?\n          AND assignment.participant_key = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "is_me",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "is_me"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "db8626e124c0338c22d9d0f0cd434fc485c5cdaf6533ab2e3d102de693f326bf"
+}

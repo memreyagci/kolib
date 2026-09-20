@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            DELETE FROM message_contact_assignments\n            WHERE account_id = ?\n              AND conversation_id = ?\n              AND participant_key = ?\n              AND contact_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "fc3d89d057b79bb4b0f9d2d797556fbd3219f9614435b7f61b5d791de2cf9b90"
+}
