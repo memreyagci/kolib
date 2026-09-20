@@ -112,6 +112,39 @@ pub enum AccountError {
 }
 
 #[derive(Error, Debug)]
+pub enum ContactError {
+    #[error("contact `{contact_id}` was not found")]
+    NotFound { contact_id: String },
+
+    #[error("the built-in Me contact was not found")]
+    MeNotFound,
+
+    #[error("contact name cannot be empty or contain only whitespace")]
+    InvalidName,
+
+    #[error("the built-in Me contact cannot be renamed")]
+    CannotRenameMe,
+
+    #[error("the built-in Me contact cannot be deleted")]
+    CannotDeleteMe,
+
+    #[error(
+        "participant `{participant_key}` is not a sender in conversation `{conversation_id}` for account `{account_id}`"
+    )]
+    MessageParticipantNotFound {
+        account_id: String,
+        conversation_id: String,
+        participant_key: String,
+    },
+
+    #[error("database error: {0}")]
+    Sqlx(#[from] sqlx::Error),
+
+    #[error("uuid error: {0}")]
+    Uuid(#[from] uuid::Error),
+}
+
+#[derive(Error, Debug)]
 pub enum MigrationError {
     #[error("parse int error: {0}")]
     ParseInt(#[from] ParseIntError),
