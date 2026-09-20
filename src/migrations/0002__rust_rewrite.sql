@@ -222,6 +222,35 @@ RENAME TO accounts;
 ALTER TABLE account_datasets_v2
 RENAME TO account_datasets;
 
+CREATE TABLE contacts (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  is_me INTEGER NOT NULL DEFAULT 0 CHECK (is_me IN (0, 1))
+);
+
+-- An archive may have many identities assigned to its built-in "Me" contact,
+-- but it may only have one contact that represents the archive owner.
+CREATE UNIQUE INDEX contacts_single_me ON contacts (is_me)
+WHERE
+  is_me = 1;
+
+CREATE TABLE message_contact_assignments (
+  account_id TEXT NOT NULL,
+  conversation_id TEXT NOT NULL,
+  participant_key TEXT NOT NULL,
+  contact_id TEXT NOT NULL,
+  PRIMARY KEY (account_id, conversation_id, participant_key),
+  FOREIGN KEY (account_id) REFERENCES accounts (id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (contact_id) REFERENCES contacts (id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+CREATE TRIGGER message_contacts_delete_with_dataset AFTER DELETE ON account_datasets WHEN OLD.dataset_type = 'messages' BEGIN
+DELETE FROM message_contact_assignments
+WHERE
+  account_id = OLD.account_id;
+
+END;
+
 CREATE TRIGGER accounts_validate_name_on_insert BEFORE INSERT ON accounts WHEN length(trim(NEW.name)) NOT BETWEEN 1 AND 100  BEGIN
 SELECT
   RAISE (
