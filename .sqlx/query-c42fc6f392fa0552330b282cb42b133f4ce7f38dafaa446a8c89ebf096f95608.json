@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        DELETE FROM message_conversation_names\n        WHERE account_id = ?\n          AND conversation_id = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "c42fc6f392fa0552330b282cb42b133f4ce7f38dafaa446a8c89ebf096f95608"
+}

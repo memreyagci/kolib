@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO message_conversation_names (account_id, conversation_id, display_name)\n        VALUES (?, ?, ?)\n        ON CONFLICT (account_id, conversation_id)\n        DO UPDATE SET display_name = excluded.display_name\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "736a9249fa399d0734ef175ec93497d293bef46b430967114d82a7af57ab0ad3"
+}
