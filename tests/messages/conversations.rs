@@ -24,6 +24,7 @@ async fn returns_conversations_by_account() {
     let conv_1 = &conversations[0];
 
     assert_eq!(conv_1.id(), "1234567891234567890-5555555555555555555");
+    assert_eq!(conv_1.display_name(), None);
     assert_eq!(conv_1.message_count(), 4);
     assert_eq!(
         conv_1.latest_message_at(),
@@ -38,6 +39,7 @@ async fn returns_conversations_by_account() {
 
     let conv_2 = &conversations[1];
     assert_eq!(conv_2.id(), "1234567891234567890-9876543219876543210");
+    assert_eq!(conv_2.display_name(), None);
     assert_eq!(conv_2.message_count(), 8);
     assert_eq!(
         conv_2.latest_message_at(),
