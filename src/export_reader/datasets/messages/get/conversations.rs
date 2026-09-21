@@ -6,6 +6,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ConversationInfo {
     id: String,
+    display_name: Option<String>,
     latest_message_text: Option<String>,
     latest_message_at: Option<Timestamp>,
     message_count: i64,
@@ -14,6 +15,10 @@ pub struct ConversationInfo {
 impl ConversationInfo {
     pub fn id(&self) -> &str {
         &self.id
+    }
+
+    pub fn display_name(&self) -> Option<&str> {
+        self.display_name.as_deref()
     }
 
     pub fn latest_message_text(&self) -> Option<&str> {
@@ -32,6 +37,7 @@ impl ConversationInfo {
 #[derive(sqlx::FromRow)]
 struct ConversationQueryRow {
     id: String,
+    display_name: Option<String>,
     latest_message_text: Option<String>,
     latest_message_at_ms: Option<i64>,
     message_count: i64,
@@ -66,19 +72,24 @@ pub async fn get_conversations_by_account(
           WHERE account_id = ?
         )
         SELECT
-          conversation_id AS id,
-          text AS latest_message_text,
-          created_at_ms AS latest_message_at_ms,
-          message_count
-        FROM ranked_messages
-        WHERE message_rank = 1
+          ranked.conversation_id AS id,
+          conversation_name.display_name,
+          ranked.text AS latest_message_text,
+          ranked.created_at_ms AS latest_message_at_ms,
+          ranked.message_count
+        FROM ranked_messages AS ranked
+        LEFT JOIN message_conversation_names AS conversation_name
+          ON conversation_name.account_id = ?
+         AND conversation_name.conversation_id = ranked.conversation_id
+        WHERE ranked.message_rank = 1
         ORDER BY
           latest_message_at_ms IS NULL,
           latest_message_at_ms DESC,
-          conversation_id
+          ranked.conversation_id
         "#,
     )
-    .bind(account_id)
+    .bind(&account_id)
+    .bind(&account_id)
     .fetch_all(archive.pool())
     .await?;
 
@@ -86,6 +97,7 @@ pub async fn get_conversations_by_account(
         .into_iter()
         .map(|row| ConversationInfo {
             id: row.id,
+            display_name: row.display_name,
             latest_message_text: row.latest_message_text,
             latest_message_at: row.latest_message_at_ms.map(Timestamp::from),
             message_count: row.message_count,

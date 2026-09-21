@@ -176,6 +176,9 @@ pub enum MessageError {
         conversation_id: String,
     },
 
+    #[error("conversation display name cannot be empty or contain only whitespace")]
+    InvalidConversationDisplayName,
+
     #[error("message `{message_id}` was not found for account `{account_id}`")]
     NotFound {
         account_id: String,
