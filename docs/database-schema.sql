@@ -169,6 +169,57 @@ WHERE
 
 END;
 
+CREATE TABLE message_conversation_names (
+  account_id TEXT NOT NULL,
+  conversation_id TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  PRIMARY KEY (account_id, conversation_id),
+  FOREIGN KEY (account_id) REFERENCES accounts (id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+CREATE TRIGGER message_conversation_names_validate_on_insert BEFORE INSERT ON message_conversation_names WHEN NOT EXISTS (
+  SELECT
+    1
+  FROM
+    messages
+  WHERE
+    account_id = NEW.account_id
+    AND conversation_id = NEW.conversation_id
+) BEGIN
+SELECT
+  RAISE (
+    ABORT,
+    'message conversation name must refer to an existing conversation in the account'
+  );
+
+END;
+
+CREATE TRIGGER message_conversation_names_validate_on_update BEFORE
+UPDATE OF account_id,
+conversation_id ON message_conversation_names WHEN NOT EXISTS (
+  SELECT
+    1
+  FROM
+    messages
+  WHERE
+    account_id = NEW.account_id
+    AND conversation_id = NEW.conversation_id
+) BEGIN
+SELECT
+  RAISE (
+    ABORT,
+    'message conversation name must refer to an existing conversation in the account'
+  );
+
+END;
+
+CREATE TRIGGER message_conversation_names_delete_with_dataset AFTER DELETE ON account_datasets WHEN OLD.dataset_type = 'messages' BEGIN
+DELETE FROM message_conversation_names
+WHERE
+  account_id = OLD.account_id;
+
+END;
+
 CREATE TRIGGER accounts_validate_name_on_insert BEFORE INSERT ON accounts WHEN length(trim(NEW.name)) NOT BETWEEN 1 AND 100  BEGIN
 SELECT
   RAISE (
